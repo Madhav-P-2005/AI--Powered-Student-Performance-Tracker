@@ -7,6 +7,8 @@ from .models import Prediction
 class PredictionSerializer(serializers.ModelSerializer):
     """Full prediction result with SHAP explanations."""
     accuracy_error = serializers.FloatField(read_only=True)
+    user_name = serializers.SerializerMethodField()
+    user_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Prediction
@@ -14,6 +16,20 @@ class PredictionSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'student_record', 'predicted_score', 'risk_level',
                             'feature_explanations', 'productivity_score',
                             'burnout_level', 'created_at')
+
+    def get_user_name(self, obj):
+        """Return the username of the student who owns this prediction."""
+        try:
+            return obj.student_record.user.username
+        except AttributeError:
+            return 'Unknown'
+
+    def get_user_id(self, obj):
+        """Return the user ID of the student who owns this prediction."""
+        try:
+            return obj.student_record.user.id
+        except AttributeError:
+            return None
 
 
 class AccuracyUpdateSerializer(serializers.Serializer):

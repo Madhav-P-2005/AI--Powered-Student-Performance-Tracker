@@ -16,8 +16,13 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'password', 'role', 'phone')
+        fields = ('id', 'username', 'email', 'password', 'role', 'phone', 'first_name', 'last_name')
         read_only_fields = ('id',)
+
+    def validate_email(self, value):
+        if value and User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with that email already exists.")
+        return value
 
     def create(self, validated_data):
         # create_user() hashes the password automatically
@@ -28,6 +33,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=validated_data.get('role', 'student'),
             phone=validated_data.get('phone', ''),
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
         )
         return user
 
@@ -40,5 +47,5 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'role', 'phone', 'date_joined')
+        fields = ('id', 'username', 'email', 'role', 'phone', 'first_name', 'last_name', 'date_joined')
         read_only_fields = fields

@@ -34,6 +34,9 @@ class User(AbstractUser):
     # Optional phone number (blank=ok in forms, null=ok in database)
     phone = models.CharField(max_length=15, blank=True, null=True)
 
+    # Override AbstractUser's email field to make it unique and nullable
+    email = models.EmailField(verbose_name='email address', unique=True, null=True, blank=True)
+
     # How this user appears as text (e.g. in admin panel, logs)
     def __str__(self):
         return f"{self.username} ({self.role})"
@@ -46,3 +49,26 @@ class User(AbstractUser):
     @property
     def is_admin_user(self):
         return self.role == 'admin'
+
+
+class PasswordResetOTP(models.Model):
+    """
+    Stores OTPs for password reset.
+    Each OTP is valid for 10 minutes and can only be used once.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otps')
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        """Check if OTP is still valid (not expired, not used)."""
+        from django.utils import timezone
+        from datetime import timedelta
+        return (
+            not self.is_used and
+            timezone.now() < self.created_at + timedelta(minutes=10)
+        )
+
+    def __str__(self):
+        return f"OTP for {self.user.username} ({'Used' if self.is_used else 'Active'})"

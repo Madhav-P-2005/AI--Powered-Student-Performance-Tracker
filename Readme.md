@@ -2,6 +2,9 @@ Frontend installation steps :-
 
 Tailwindcss :-  npm install -D tailwindcss postcss autoprefixer  . 
 
+
+npm install @tailwindcss/vite@^4.0.0
+
 npx @tailwindcss/cli init -p
 
 followed by adding @import "tailwindcss"; in your .css file.
