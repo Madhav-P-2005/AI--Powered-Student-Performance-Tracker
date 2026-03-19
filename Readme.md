@@ -102,7 +102,9 @@ npm run dev
 The AI engine runs natively within the Django backend, requiring no external paid APIs (like OpenAI).
 
 1. **The Model**: 
-   We trained two models: a `RandomForestRegressor` (predicts the exact score 0-100) and a `RandomForestClassifier` (predicts Risk Level). The models were trained on a merged 10,000-row Kaggle dataset consisting of academic metrics (attendance, study hours) and lifestyle metrics (sleep, mental health, screen time).
+   We trained two models: a `RandomForestRegressor` (predicts the exact score 0-100) and a `RandomForestClassifier` (predicts Risk Level). The models were trained by combining two major Kaggle datasets:
+   - [**Student Performance Dataset**](https://www.kaggle.com/datasets/nabeelqureshitiii/student-performance-dataset) (Academic Metrics: study hours, attendance, etc.)
+   - [**Ultimate Student Productivity Dataset**](https://www.kaggle.com/datasets/sampathvinayakbablu/ultimate-student-productivity-dataset) (Lifestyle Metrics: sleep, social media, mental health)
 2. **Inference**:
    The `.pkl` model files limit memory footprint. The `predict_student()` function handles scaling and prediction instantly via `joblib`.
 3. **SHAP (SHapley Additive exPlanations)**:
