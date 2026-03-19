@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../config/api';
+import * as authService from '../services/authService';
 import { FiMail, FiLock, FiShield, FiArrowLeft, FiCheck } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,7 +23,7 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password/', { email });
+      await authService.requestOTP(email);
       toast.success('OTP sent to your email! Check your inbox.');
       setStep(2);
     } catch (error) {
@@ -41,7 +41,7 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-otp/', { email, otp });
+      const res = await authService.verifyOTP(email, otp);
       if (res.data.verified) {
         toast.success('OTP verified! Set your new password.');
         setStep(3);
@@ -62,11 +62,7 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      await api.post('/auth/reset-password/', {
-        email,
-        otp,
-        new_password: newPassword,
-      });
+      await authService.resetPassword(email, otp, newPassword);
       toast.success('Password reset successfully! Please log in.');
       navigate('/login');
     } catch (error) {

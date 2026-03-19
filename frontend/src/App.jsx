@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import Navbar from './components/layout/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -33,8 +34,8 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<SmartDashboard />} />
-          <Route path="/submit" element={<StudentForm />} />
+          <Route path="/dashboard" element={<ProtectedRoute><SmartDashboard /></ProtectedRoute>} />
+          <Route path="/submit" element={<ProtectedRoute><StudentForm /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} /> 
         </Routes>
       </main>

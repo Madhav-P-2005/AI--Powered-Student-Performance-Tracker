@@ -1,34 +1,14 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import { FiAlertCircle, FiTrendingUp, FiActivity, FiClock, FiPlus, FiArrowUp, FiArrowDown } from 'react-icons/fi';
-import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 
-// Human-readable labels & smart insights for each ML feature
-const FEATURE_META = {
-  study_hours:            { label: 'Study Hours',         category: 'academic', icon: '📚', unit: 'hrs/wk',    goodRange: '15-25' },
-  self_study_hours:       { label: 'Self Study',          category: 'academic', icon: '📖', unit: 'hrs/wk',    goodRange: '10-20' },
-  online_classes_hours:   { label: 'Online Classes',      category: 'academic', icon: '💻', unit: 'hrs/wk',    goodRange: '5-15' },
-  attendance_percentage:  { label: 'Attendance',           category: 'academic', icon: '📋', unit: '%',         goodRange: '80-100' },
-  class_participation:    { label: 'Class Participation', category: 'academic', icon: '🙋', unit: '/5',        goodRange: '4-5' },
-  social_media_hours:     { label: 'Social Media',        category: 'digital',  icon: '📱', unit: 'hrs/day',   goodRange: '0-2' },
-  gaming_hours:           { label: 'Gaming',              category: 'digital',  icon: '🎮', unit: 'hrs/day',   goodRange: '0-1' },
-  screen_time_hours:      { label: 'Screen Time',         category: 'digital',  icon: '🖥️', unit: 'hrs/day',   goodRange: '2-6' },
-  sleep_hours:            { label: 'Sleep',               category: 'health',   icon: '😴', unit: 'hrs/night', goodRange: '7-9' },
-  exercise_minutes:       { label: 'Exercise',            category: 'health',   icon: '🏃', unit: 'min/day',   goodRange: '30-60' },
-  caffeine_intake_mg:     { label: 'Caffeine',            category: 'health',   icon: '☕', unit: 'mg/day',    goodRange: '0-200' },
-  mental_health_score:    { label: 'Mental Health',       category: 'health',   icon: '🧠', unit: '/5',        goodRange: '4-5' },
-  part_time_job:          { label: 'Part-Time Job',       category: 'health',   icon: '💼', unit: '',          goodRange: 'No' },
-  upcoming_deadline:      { label: 'Deadlines',           category: 'academic', icon: '📅', unit: 'active',    goodRange: '0-3' },
-};
-
-const CATEGORY_INFO = {
-  academic: { label: 'Academic Factors', color: 'indigo',  bgClass: 'bg-indigo-50', textClass: 'text-indigo-700',  borderClass: 'border-indigo-200' },
-  digital:  { label: 'Digital Behavior', color: 'purple',  bgClass: 'bg-purple-50', textClass: 'text-purple-700',  borderClass: 'border-purple-200' },
-  health:   { label: 'Health & Lifestyle', color: 'emerald', bgClass: 'bg-emerald-50', textClass: 'text-emerald-700', borderClass: 'border-emerald-200' },
-};
+// Shared imports
+import usePredictions from '../hooks/usePredictions';
+import { FEATURE_META, CATEGORY_INFO, containerVariants, itemVariants } from '../config/constants';
+import Spinner from '../components/ui/Spinner';
+import RiskBadge from '../components/ui/RiskBadge';
+import EmptyState from '../components/ui/EmptyState';
 
 // Generate a natural language insight for a feature
 function getInsight(feature, value, impact) {
@@ -89,94 +69,49 @@ function getInsight(feature, value, impact) {
   return insights[feature] || null;
 }
 
-const Dashboard = () => {
-  const { user } = useAuth();
-  const [predictions, setPredictions] = useState([]);
-  const [alerts, setAlerts] = useState({ alerts: [], risk_status: 'no_data' });
-  const [loading, setLoading] = useState(true);
+// Process SHAP data into categories with percentages
+const processShapData = (explanations) => {
+  if (!explanations || Object.keys(explanations).length === 0) return null;
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const historyRes = await api.get('/predictions/history/');
-        const historyData = historyRes.data.results || historyRes.data;
-        setPredictions(Array.isArray(historyData) ? historyData : []);
-
-        try {
-          const alertsRes = await api.get('/predictions/alerts/');
-          setAlerts(alertsRes.data);
-        } catch (e) {
-          console.error("Alerts not ready or empty", e);
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard data", error);
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
+  const totalAbsImpact = Object.values(explanations).reduce((sum, d) => sum + Math.abs(d.impact), 0);
+  
+  const features = Object.entries(explanations).map(([key, data]) => {
+    const meta = FEATURE_META[key] || { label: key, category: 'academic', icon: '📊', unit: '', goodRange: '' };
+    const percentage = totalAbsImpact > 0 ? (Math.abs(data.impact) / totalAbsImpact) * 100 : 0;
+    return {
+      key,
+      ...data,
+      ...meta,
+      percentage: Math.round(percentage),
+      insight: getInsight(key, data.value, data.impact),
     };
+  }).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 
-    if (user) fetchDashboardData();
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+  // Category-level aggregation
+  const categories = {};
+  for (const f of features) {
+    if (!categories[f.category]) categories[f.category] = { positive: 0, negative: 0, total: 0 };
+    if (f.impact > 0) categories[f.category].positive += f.impact;
+    else categories[f.category].negative += f.impact;
+    categories[f.category].total += Math.abs(f.impact);
   }
 
-  const latestPrediction = predictions.length > 0 ? predictions[0] : null;
+  const categoryPercentages = {};
+  for (const [cat, vals] of Object.entries(categories)) {
+    categoryPercentages[cat] = {
+      percentage: totalAbsImpact > 0 ? Math.round((vals.total / totalAbsImpact) * 100) : 0,
+      net: vals.positive + vals.negative,
+    };
+  }
 
-  // Process SHAP data into categories with percentages
-  const processShapData = (explanations) => {
-    if (!explanations || Object.keys(explanations).length === 0) return null;
+  return { features, categoryPercentages, totalAbsImpact };
+};
 
-    const totalAbsImpact = Object.values(explanations).reduce((sum, d) => sum + Math.abs(d.impact), 0);
-    
-    const features = Object.entries(explanations).map(([key, data]) => {
-      const meta = FEATURE_META[key] || { label: key, category: 'academic', icon: '📊', unit: '', goodRange: '' };
-      const percentage = totalAbsImpact > 0 ? (Math.abs(data.impact) / totalAbsImpact) * 100 : 0;
-      return {
-        key,
-        ...data,
-        ...meta,
-        percentage: Math.round(percentage),
-        insight: getInsight(key, data.value, data.impact),
-      };
-    }).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+const Dashboard = () => {
+  const { user } = useAuth();
+  const { predictions, alerts, loading, latestPrediction } = usePredictions(user);
 
-    // Category-level aggregation
-    const categories = {};
-    for (const f of features) {
-      if (!categories[f.category]) categories[f.category] = { positive: 0, negative: 0, total: 0 };
-      if (f.impact > 0) categories[f.category].positive += f.impact;
-      else categories[f.category].negative += f.impact;
-      categories[f.category].total += Math.abs(f.impact);
-    }
-
-    const categoryPercentages = {};
-    for (const [cat, vals] of Object.entries(categories)) {
-      categoryPercentages[cat] = {
-        percentage: totalAbsImpact > 0 ? Math.round((vals.total / totalAbsImpact) * 100) : 0,
-        net: vals.positive + vals.negative,
-      };
-    }
-
-    return { features, categoryPercentages, totalAbsImpact };
-  };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
+  if (loading) return <Spinner />;
 
   return (
     <motion.div 
@@ -201,16 +136,16 @@ const Dashboard = () => {
         <div className="mb-8 space-y-3">
           {alerts.alerts.map((alert, idx) => (
             <div key={idx} className={`flex items-start gap-4 p-4 rounded-xl border ${
-              alert.type === 'danger' ? 'bg-red-50 border-red-200 text-red-800' :
-              alert.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-              'bg-blue-50 border-blue-200 text-blue-800'
+              alert.type === 'danger' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30 text-red-800 dark:text-red-300' :
+              alert.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-300' :
+              'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30 text-blue-800 dark:text-blue-300'
             }`}>
-              <FiAlertCircle size={20} className={alert.type === 'danger' ? 'text-red-500' : 'text-amber-500'} />
+              <FiAlertCircle size={20} className={alert.type === 'danger' ? 'text-red-500 dark:text-red-400' : 'text-amber-500 dark:text-amber-400'} />
               <div>
                 <h4 className="font-semibold">{alert.title}</h4>
                 <p className="text-sm mt-1">{alert.message}</p>
                 {alert.suggestion && (
-                  <p className="text-sm mt-2 font-medium bg-white/50 inline-block px-3 py-1 rounded-lg">
+                  <p className="text-sm mt-2 font-medium bg-white/50 dark:bg-black/20 inline-block px-3 py-1 rounded-lg">
                     💡 {alert.suggestion}
                   </p>
                 )}
@@ -221,19 +156,13 @@ const Dashboard = () => {
       )}
 
       {predictions.length === 0 ? (
-        /* Empty State */
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-12 text-center shadow-sm">
-          <div className="w-16 h-16 bg-gray-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FiActivity size={28} className="text-gray-400 dark:text-gray-500" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Predictions Yet</h3>
-          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">
-            Submit your study habits and lifestyle data to get your first AI-powered forecast.
-          </p>
-          <Link to="/submit" className="inline-flex bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors">
-            Start First Prediction
-          </Link>
-        </div>
+        <EmptyState
+          icon={FiActivity}
+          title="No Predictions Yet"
+          subtitle="Submit your study habits and lifestyle data to get your first AI-powered forecast."
+          ctaLabel="Start First Prediction"
+          ctaLink="/submit"
+        />
       ) : (
         <>
           {/* Score + Risk Cards */}
@@ -449,13 +378,7 @@ const Dashboard = () => {
                         {pred.predicted_score.toFixed(1)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${
-                          pred.risk_level === 'high' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
-                          pred.risk_level === 'medium' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
-                          'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                        }`}>
-                          {pred.risk_level}
-                        </span>
+                        <RiskBadge level={pred.risk_level} />
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {pred.actual_score ? (

@@ -2,11 +2,17 @@
 
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import RegisterView, ProfileView, RequestOTPView, VerifyOTPView, ResetPasswordView, AdminDeleteUserView
+from .views import RegisterView, ProfileView, RequestOTPView, VerifyOTPView, ResetPasswordView, AdminDeleteUserView, SendRegistrationOTPView, VerifiedRegisterView
 
 urlpatterns = [
-    # POST: register new user
+    # POST: register new user (legacy/unverified)
     path('register/', RegisterView.as_view(), name='register'),
+
+    # POST: send OTP for registration
+    path('send-registration-otp/', SendRegistrationOTPView.as_view(), name='send-registration-otp'),
+
+    # POST: verify OTP and register user
+    path('verified-register/', VerifiedRegisterView.as_view(), name='verified-register'),
 
     # POST: login — returns { access, refresh } JWT tokens
     path('token/', TokenObtainPairView.as_view(), name='token-obtain'),

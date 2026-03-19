@@ -97,7 +97,7 @@ const Navbar = () => {
                   whileHover={{ scale: 1.1, backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleLogout}
-                  className="p-2.5 text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors border border-slate-100 dark:border-slate-700"
+                  className="p-2.5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 bg-white dark:bg-slate-800 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"
                   title="Logout"
                 >
                   <FiLogOut size={18} />

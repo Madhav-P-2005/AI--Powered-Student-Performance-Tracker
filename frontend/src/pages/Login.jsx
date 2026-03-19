@@ -37,16 +37,16 @@ const Login = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[2rem] shadow-sm p-8 sm:p-10 mb-10 mt-10"
+        className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[2rem] shadow-sm p-8 sm:p-10 mb-10 mt-10"
       >
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-500 dark:from-slate-100 dark:to-slate-400 tracking-tight">Welcome back</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Enter your credentials to access your account.</p>
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-slate-300 tracking-tight">Welcome back</h2>
+          <p className="text-slate-500 dark:text-slate-300 mt-2 font-medium">Enter your credentials to access your account.</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" htmlFor="username">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2" htmlFor="username">
               Username
             </label>
             <div className="relative">
@@ -56,7 +56,7 @@ const Login = () => {
               <input
                 id="username"
                 type="text"
-                className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/80 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm ${errors.username ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`}
+                className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.username ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`}
                 placeholder="Enter your username"
                 {...register('username', { required: 'Username is required' })}
               />
@@ -65,7 +65,7 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2" htmlFor="password">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2" htmlFor="password">
               Password
             </label>
             <div className="relative">
@@ -75,7 +75,7 @@ const Login = () => {
               <input
                 id="password"
                 type="password"
-                className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/80 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm ${errors.password ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`}
+                className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.password ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`}
                 placeholder="••••••••"
                 {...register('password', { required: 'Password is required' })}
               />
@@ -86,7 +86,7 @@ const Login = () => {
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center">
               <input id="remember-me" type="checkbox" className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-slate-600 rounded dark:bg-slate-700" />
-              <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-slate-600 dark:text-slate-300">Remember me</label>
+              <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-slate-600 dark:text-slate-200">Remember me</label>
             </div>
             <Link to="/forgot-password" className="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">Forgot password?</Link>
           </div>
@@ -104,8 +104,8 @@ const Login = () => {
           </motion.button>
         </form>
 
-        <div className="mt-8 text-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+        <div className="mt-8 text-center bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
             Don't have an account?{' '}
             <Link to="/register" className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
               Sign up

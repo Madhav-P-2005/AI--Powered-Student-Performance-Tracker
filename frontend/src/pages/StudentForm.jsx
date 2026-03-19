@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import api from '../config/api';
+import * as studentService from '../services/studentService';
+import * as predictionService from '../services/predictionService';
 import { toast } from 'react-toastify';
 import { FiSave, FiAlertCircle, FiArrowLeft, FiBook, FiMonitor, FiHeart } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { containerVariants, itemVariants } from '../config/constants';
 
 const StudentForm = () => {
   const { register, handleSubmit, control, formState: { errors } } = useForm({
@@ -33,12 +35,10 @@ const StudentForm = () => {
     setIsLoading(true);
     try {
       // 1. Create the Student Record
-      const recordRes = await api.post('/students/records/', data);
+      const recordRes = await studentService.createRecord(data);
       
       // 2. Run the Prediction using the newly created record ID
-      await api.post('/predictions/run/', {
-        student_record_id: recordRes.data.id
-      });
+      await predictionService.runPrediction(recordRes.data.id);
       
       toast.success("Prediction generated successfully!");
       navigate('/dashboard');
@@ -76,7 +76,7 @@ const StudentForm = () => {
     </motion.div>
   );
 
-  const containerVariants = {
+  const formContainerVariants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.15 } }
   };
@@ -88,7 +88,7 @@ const StudentForm = () => {
   return (
     <motion.div 
       className="max-w-4xl mx-auto pt-4 relative"
-      variants={containerVariants}
+      variants={formContainerVariants}
       initial="hidden"
       animate="show"
     >

@@ -8,7 +8,7 @@ from django.conf import settings
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import User, PasswordResetOTP
+from .models import User, PasswordResetOTP, EmailVerificationOTP
 from .serializers import RegisterSerializer, UserSerializer
 
 
@@ -16,10 +16,115 @@ class RegisterView(generics.CreateAPIView):
     """
     POST /api/v1/auth/register/
     Creates a new user account. No authentication required.
+    (Legacy - unverified registration)
     """
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class SendRegistrationOTPView(APIView):
+    """
+    POST /api/v1/auth/send-registration-otp/
+    Body: { "email": "test@example.com" }
+    
+    Checks if email exists. If not, generates a 6-digit OTP and sends it via email.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if email is already registered
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'A user with that email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Invalidate all previous unverified OTPs for this email
+        EmailVerificationOTP.objects.filter(email=email, is_used=False).update(is_used=True)
+
+        # Generate 6-digit OTP
+        otp_code = str(random.randint(100000, 999999))
+
+        # Save OTP to database
+        EmailVerificationOTP.objects.create(email=email, otp=otp_code)
+
+        # Send email via Brevo SMTP
+        context = {
+            'email': email,
+            'otp': otp_code
+        }
+        html_message = render_to_string('emails/registration_otp_email.html', context)
+        plain_message = strip_tags(html_message)
+
+        try:
+            send_mail(
+                subject='👋 AI Student Tracker — Verify Your Email',
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+        except Exception as e:
+            print(f"❌ Email send error: {e}")
+            return Response(
+                {'error': 'Failed to send verification email. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({
+            'message': 'Verification code sent successfully.'
+        })
+
+
+class VerifiedRegisterView(APIView):
+    """
+    POST /api/v1/auth/verified-register/
+    Body: { "email": "...", "otp": "123456", "username": "...", "password": "..." ... }
+    
+    Verifies OTP and creates user account.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        otp_code = request.data.get('otp', '').strip()
+
+        if not email or not otp_code:
+            return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Verify OTP
+        otp_record = EmailVerificationOTP.objects.filter(
+            email=email, otp=otp_code, is_used=False
+        ).order_by('-created_at').first()
+
+        if not otp_record or not otp_record.is_valid():
+            return Response(
+                {'error': 'Invalid or expired OTP. Please request a new one.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Use existing serializer to validate data and create user
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Mark OTP as used
+            otp_record.is_used = True
+            otp_record.save()
+            
+            return Response({
+                'message': 'Account created successfully!',
+                'user': {
+                    'username': user.username,
+                    'email': user.email
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileView(generics.RetrieveAPIView):

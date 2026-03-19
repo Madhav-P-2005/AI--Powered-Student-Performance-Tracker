@@ -1,8 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import api from '../config/api';
-import { useAuth } from '../context/AuthContext';
-import { FiUsers, FiAlertTriangle, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiSearch, FiEdit3, FiSave, FiX, FiTrash2, FiUploadCloud, FiDownload } from 'react-icons/fi';
-import { toast } from 'react-toastify';
+import { FiUsers, FiAlertTriangle, FiCheckCircle, FiTrendingUp, FiSearch, FiEdit3, FiSave, FiX, FiTrash2, FiUploadCloud, FiDownload } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Chart as ChartJS,
@@ -16,173 +12,42 @@ import {
 } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 
+// Shared imports
+import useAdminDashboard from '../hooks/useAdminDashboard';
+import { containerVariants, itemVariants } from '../config/constants';
+import Spinner from '../components/ui/Spinner';
+import RiskBadge from '../components/ui/RiskBadge';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import EmptyState from '../components/ui/EmptyState';
+
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
-  const [predictions, setPredictions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterRisk, setFilterRisk] = useState('all');
-  const [editingId, setEditingId] = useState(null);
-  const [actualScoreInput, setActualScoreInput] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [deleteModalConfig, setDeleteModalConfig] = useState({ isOpen: false, userId: null, studentName: '' });
-  const fileInputRef = useRef(null);
+  const {
+    predictions, filteredPredictions, loading,
+    selectedStudent, setSelectedStudent,
+    deleteModalConfig, setDeleteModalConfig,
+    searchQuery, setSearchQuery,
+    filterRisk, setFilterRisk,
+    editingId, setEditingId,
+    actualScoreInput, setActualScoreInput,
+    handleSaveActualScore,
+    handleDeleteStudent, confirmDeleteStudent,
+    isUploading, fileInputRef, handleFileUpload, exportTableToCSV,
+    stats,
+  } = useAdminDashboard();
 
-  useEffect(() => {
-    fetchAllPredictions();
-  }, []);
+  const { totalStudents, highRiskCount, mediumRiskCount, lowRiskCount, avgScore, verifiedCount } = stats;
 
-  const fetchAllPredictions = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/predictions/history/');
-      const data = res.data.results || res.data;
-      setPredictions(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching predictions:', error);
-      toast.error('Failed to load predictions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Submit actual score for a prediction
-  const handleSaveActualScore = async (predictionId) => {
-    const score = parseFloat(actualScoreInput);
-    if (isNaN(score) || score < 0 || score > 100) {
-      toast.error('Enter a valid score between 0 and 100');
-      return;
-    }
-
-    try {
-      await api.patch(`/predictions/${predictionId}/actual/`, {
-        actual_score: score,
-      });
-      toast.success('Actual score updated!');
-      setEditingId(null);
-      setActualScoreInput('');
-      fetchAllPredictions(); // Refresh data
-    } catch (error) {
-      toast.error('Failed to update score');
-      console.error(error);
-    }
-  };
-
-  // Trigger Delete Confirmation Modal
-  const handleDeleteStudent = (predictionId, userId, studentName) => {
-    if (!userId) {
-      toast.error('Cannot delete: Missing user ID. Note: Old predictions may not have a user_id attached.');
-      return;
-    }
-    setDeleteModalConfig({ isOpen: true, userId, studentName });
-  };
-
-  // Actual Delete API Call
-  const confirmDeleteStudent = async () => {
-    const { userId, studentName } = deleteModalConfig;
-    try {
-      await api.delete(`/auth/users/${userId}/`);
-      toast.success(`Student ${studentName} successfully deleted.`);
-      setDeleteModalConfig({ isOpen: false, userId: null, studentName: '' });
-      fetchAllPredictions(); // Refresh data
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to delete student');
-      console.error('Delete error:', error);
-    }
-  };
-
-  // Filter predictions
-  const filteredPredictions = predictions.filter((pred) => {
-    const studentName = pred.user_name || '';
-    const matchesSearch = studentName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRisk = filterRisk === 'all' || pred.risk_level === filterRisk;
-    return matchesSearch && matchesRisk;
-  });
-
-  // Handle CSV Bulk Upload
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      setIsUploading(true);
-      const res = await api.post('/predictions/csv-upload/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      toast.success(`Successfully processed ${res.data.processed} rows!`);
-      if (res.data.errors > 0) {
-        toast.warning(`${res.data.errors} rows had formatting errors.`);
-      }
-      fetchAllPredictions();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to upload CSV');
-      console.error(error);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  // Export current table to CSV
-  const exportTableToCSV = () => {
-    if (filteredPredictions.length === 0) {
-      toast.warning('No data to export.');
-      return;
-    }
-
-    const headers = ['Student ID', 'Student Name', 'Date', 'Predicted Score', 'Risk Level', 'Actual Score'];
-    const rows = filteredPredictions.map(p => [
-      p.user_id || 'N/A',
-      p.user_name || 'Unknown',
-      new Date(p.created_at).toLocaleDateString(),
-      p.predicted_score.toFixed(1),
-      p.risk_level,
-      p.actual_score || ''
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(r => r.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `predictions_export_${new Date().toISOString().slice(0, 10)}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Stats
-  const totalStudents = new Set(predictions.map(p => p.user_name)).size;
-  const highRiskCount = predictions.filter(p => p.risk_level === 'high').length;
-  const mediumRiskCount = predictions.filter(p => p.risk_level === 'medium').length;
-  const lowRiskCount = predictions.filter(p => p.risk_level === 'low').length;
-  const avgScore = predictions.length > 0
-    ? (predictions.reduce((sum, p) => sum + p.predicted_score, 0) / predictions.length).toFixed(1)
-    : 0;
-  const verifiedCount = predictions.filter(p => p.actual_score).length;
-
-  // Chart Data Preparation
+  // Chart Data
   const riskDoughnutData = {
     labels: ['High Risk', 'Medium Risk', 'Low Risk'],
-    datasets: [
-      {
-        data: [highRiskCount, mediumRiskCount, lowRiskCount],
-        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
-        borderWidth: 0,
-        hoverOffset: 4
-      },
-    ],
+    datasets: [{
+      data: [highRiskCount, mediumRiskCount, lowRiskCount],
+      backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+      borderWidth: 0,
+      hoverOffset: 4
+    }],
   };
 
   const doughnutOptions = {
@@ -192,18 +57,12 @@ const AdminDashboard = () => {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: {
-          padding: 24,
-          usePointStyle: true,
-          pointStyle: 'circle',
-          font: { weight: 'bold', size: 12, family: "'Inter', sans-serif" }
-        }
+        labels: { padding: 24, usePointStyle: true, pointStyle: 'circle', font: { weight: 'bold', size: 12, family: "'Inter', sans-serif" } }
       }
     },
     layout: { padding: 10 }
   };
 
-  // Granular Score Intervals (10-point buckets)
   const scoreRanges = {
     '0-10': 0, '11-20': 0, '21-30': 0, '31-40': 0, '41-50': 0,
     '51-60': 0, '61-70': 0, '71-80': 0, '81-90': 0, '91-100': 0
@@ -225,19 +84,17 @@ const AdminDashboard = () => {
 
   const scoreBarData = {
     labels: Object.keys(scoreRanges),
-    datasets: [
-      {
-        label: 'Number of Students',
-        data: Object.values(scoreRanges),
-        backgroundColor: Object.keys(scoreRanges).map(label => {
-          const maxVal = parseInt(label.split('-')[1]);
-          if (maxVal <= 40) return '#ef4444'; // Red for failing
-          if (maxVal <= 70) return '#f59e0b'; // Amber for medium
-          return '#10b981'; // Green for passing
-        }),
-        borderRadius: 4,
-      },
-    ],
+    datasets: [{
+      label: 'Number of Students',
+      data: Object.values(scoreRanges),
+      backgroundColor: Object.keys(scoreRanges).map(label => {
+        const maxVal = parseInt(label.split('-')[1]);
+        if (maxVal <= 40) return '#ef4444';
+        if (maxVal <= 70) return '#f59e0b';
+        return '#10b981';
+      }),
+      borderRadius: 4,
+    }],
   };
 
   const barOptions = {
@@ -248,23 +105,7 @@ const AdminDashboard = () => {
     layout: { padding: { top: 10, bottom: 10 } }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
+  if (loading) return <Spinner />;
 
   return (
     <motion.div 
@@ -347,17 +188,8 @@ const AdminDashboard = () => {
 
       {/* Admin Actions Bar */}
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        
-        {/* CSV Upload Area */}
         <div className="flex-1 w-full relative">
-          <input 
-            type="file" 
-            accept=".csv" 
-            ref={fileInputRef}
-            onChange={handleFileUpload} 
-            className="hidden" 
-            id="csv-upload"
-          />
+          <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileUpload} className="hidden" id="csv-upload" />
           <label 
             htmlFor="csv-upload"
             className={`flex flex-col items-center justify-center w-full h-32 md:h-24 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
@@ -380,8 +212,6 @@ const AdminDashboard = () => {
             )}
           </label>
         </div>
-
-        {/* Export Button */}
         <div className="flex flex-col justify-center h-full w-full md:w-auto">
           <button 
             onClick={exportTableToCSV}
@@ -391,13 +221,12 @@ const AdminDashboard = () => {
             Export to CSV
           </button>
         </div>
-
       </motion.div>
 
       {/* Filters */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-slate-400 dark:text-slate-500" size={20} />
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={20} />
           <input
             type="text"
             placeholder="Search students..."
@@ -426,12 +255,7 @@ const AdminDashboard = () => {
       {/* Student Predictions Table */}
       <motion.div variants={itemVariants}>
         {filteredPredictions.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-12 text-center shadow-sm">
-            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 dark:border-slate-600">
-              <FiSearch size={28} className="text-slate-400 dark:text-slate-500" />
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 font-medium">No predictions found matching your filters.</p>
-          </div>
+          <EmptyState icon={FiSearch} title="No predictions found matching your filters." />
         ) : (
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
@@ -448,56 +272,41 @@ const AdminDashboard = () => {
                     <th className="px-6 py-5 font-bold uppercase tracking-wider text-xs text-center">Actions</th>
                   </tr>
                 </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
-                {filteredPredictions.map((pred, idx) => (
-                  <tr key={pred.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{idx + 1}</td>
-                    <td className="px-6 py-4">
-                      <button 
-                        onClick={() => setSelectedStudent(pred)}
-                        className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all text-left"
-                      >
-                        {pred.user_name || 'Unknown'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(pred.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">
-                      {pred.predicted_score.toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${
-                        pred.risk_level === 'high' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
-                        pred.risk_level === 'medium' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
-                        'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                      }`}>
-                        {pred.risk_level}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {editingId === pred.id ? (
-                        <div className="flex items-center gap-2">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
+                  {filteredPredictions.map((pred, idx) => (
+                    <tr key={pred.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{idx + 1}</td>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={() => setSelectedStudent(pred)}
+                          className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all text-left"
+                        >
+                          {pred.user_name || 'Unknown'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(pred.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">
+                        {pred.predicted_score.toFixed(1)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <RiskBadge level={pred.risk_level} />
+                      </td>
+                      <td className="px-6 py-4">
+                        {editingId === pred.id ? (
+                          <div className="flex items-center gap-2">
                             <input
-                              type="number"
-                              min="0"
-                              max="100"
+                              type="number" min="0" max="100"
                               value={actualScoreInput}
                               onChange={(e) => setActualScoreInput(e.target.value)}
                               className="w-20 px-2 py-1 border border-indigo-300 dark:border-indigo-600 bg-transparent dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              placeholder="0-100"
-                              autoFocus
+                              placeholder="0-100" autoFocus
                             />
-                            <button
-                              onClick={() => handleSaveActualScore(pred.id)}
-                              className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
-                            >
+                            <button onClick={() => handleSaveActualScore(pred.id)} className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">
                               <FiSave size={16} />
                             </button>
-                            <button
-                              onClick={() => { setEditingId(null); setActualScoreInput(''); }}
-                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                            >
+                            <button onClick={() => { setEditingId(null); setActualScoreInput(''); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                               <FiX size={16} />
                             </button>
                           </div>
@@ -532,13 +341,13 @@ const AdminDashboard = () => {
                           <FiTrash2 size={18} />
                         </button>
                       </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </motion.div>
 
       {/* Accuracy Summary */}
@@ -560,7 +369,6 @@ const AdminDashboard = () => {
       <AnimatePresence>
         {selectedStudent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            {/* Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -569,14 +377,12 @@ const AdminDashboard = () => {
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
             
-            {/* Modal Box */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-10"
             >
-              {/* Header */}
               <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{selectedStudent.user_name || 'Unknown'}</h3>
@@ -590,7 +396,6 @@ const AdminDashboard = () => {
                 </button>
               </div>
 
-              {/* Body: SHAP Insights */}
               <div className="p-6 max-h-[60vh] overflow-y-auto">
                 <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4">AI Factor Breakdown</h4>
                 
@@ -635,50 +440,14 @@ const AdminDashboard = () => {
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {deleteModalConfig.isOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDeleteModalConfig({ ...deleteModalConfig, isOpen: false })}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-20 p-8 text-center"
-            >
-              <div className="w-20 h-20 bg-rose-50 dark:bg-rose-900/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-rose-100 dark:border-rose-800/50">
-                <FiTrash2 size={32} className="text-rose-600 dark:text-rose-400" />
-              </div>
-              
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Are you sure?</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                You are about to delete <span className="font-bold text-slate-800 dark:text-slate-200">{deleteModalConfig.studentName}</span>'s account. This will permanently remove all their performance data and predictions.
-              </p>
-              
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => setDeleteModalConfig({ ...deleteModalConfig, isOpen: false })}
-                  className="flex-1 px-6 py-4 rounded-2xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-transparent"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={confirmDeleteStudent}
-                  className="flex-1 px-6 py-4 rounded-2xl font-bold bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/50 hover:-translate-y-0.5 transition-all"
-                >
-                  Delete Account
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={deleteModalConfig.isOpen}
+        onClose={() => setDeleteModalConfig({ ...deleteModalConfig, isOpen: false })}
+        onConfirm={confirmDeleteStudent}
+        title="Are you sure?"
+        message={<>You are about to delete <span className="font-bold text-slate-800 dark:text-slate-200">{deleteModalConfig.studentName}</span>'s account. This will permanently remove all their performance data and predictions.</>}
+        confirmLabel="Delete Account"
+      />
     </motion.div>
   );
 };

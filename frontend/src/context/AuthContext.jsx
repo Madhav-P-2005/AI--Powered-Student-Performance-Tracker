@@ -50,10 +50,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (userData, otp) => {
     try {
-      await api.post('/auth/register/', userData);
-      toast.success('Registration successful. You can now log in.');
+      await api.post('/auth/verified-register/', { ...userData, otp });
+      toast.success('Registration verified and successful. You can now log in.');
       return { success: true };
     } catch (error) {
       const msg = error.response?.data 
