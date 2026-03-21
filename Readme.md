@@ -135,7 +135,46 @@ Project Root/
 │   │   └── index.css     ← Tailwind directives
 ```
 
+---
+
+## 🚀 Deployment Guide (Render + Vercel)
+
+This project is configured to run the Django backend on **Render**, the Vite/React frontend on **Vercel**, and host the PostgreSQL database on **Supabase**.
+
+### Phase 1: Deploy Backend on Render
+1. Go to [Render](https://render.com) and create a new **Web Service**.
+2. Connect your GitHub repository.
+3. Configure the following settings:
+   - **Language**: `Python 3`
+   - **Root Directory**: `backend`
+   - **Build Command**: `sh build.sh` *(This script runs `pip install`, `collectstatic`, and `migrate`)*
+   - **Start Command**: `gunicorn config.wsgi:application`
+4. Add the following **Environment Variables**:
+   - `PYTHON_VERSION`: `3.13.0`
+   - `DEBUG`: `False` *(Crucial for production security)*
+   - `ALLOWED_HOSTS`: `your-service-name.onrender.com` *(Must perfectly match the exact URL Render assigns your service!)*
+   - `SECRET_KEY`: *(Your Django secret key)*
+   - `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`: *(Your Supabase credentials)*
+   - `BREVO_SMTP_KEY`, `BREVO_SMTP_LOGIN`, `BREVO_SENDER_EMAIL`: *(Your Brevo credentials)*
+5. Click **Deploy**. Once live, copy your backend URL (e.g., `https://my-backend.onrender.com`).
+
+### Phase 2: Deploy Frontend on Vercel
+1. Go to [Vercel](https://vercel.com) and click **Import Project**.
+2. Connect your GitHub repository and configure:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `frontend` (Click Edit next to Root Directory)
+3. Add the following **Environment Variable**:
+   - `VITE_API_URL`: `https://your-backend-url.onrender.com/api/v1` *(Point this perfectly to your newly created Render API)*
+4. Click **Deploy**. Once built, copy your live frontend URL (e.g., `https://my-frontend.vercel.app`).
+
+### Phase 3: Final CORS Wiring (Critical)
+1. Go back to your Render Dashboard → Environment Variables.
+2. Add one final variable to tell Django it's allowed to talk to Vercel:
+   - `CORS_ALLOWED_ORIGINS`: `https://your-frontend-url.vercel.app`
+3. Save changes. Render will automatically restart. Your full-stack app is now securely communicating!
+
+---
+
 ## 🤝 Next Steps for Future Development
-- Integrate email notifications using Celery/Redis for background task processing.
 - Deploy the Django backend to Render/Railway and the React frontend to Vercel/Netlify.
 - Integrate real-time websockets (Django Channels) for instant Admin Dashboard updates.
