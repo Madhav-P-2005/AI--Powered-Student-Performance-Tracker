@@ -46,3 +46,9 @@ We utilized the **Random Forest** algorithm via `scikit-learn`, chosen for its h
 
 **5. How does the Admin trust the model's 'weightage' or predictions?**
 *Answer:* "Most AI is a 'Black Box'. To solve this and build real-world admin trust, we integrated **SHAP (SHapley Additive exPlanations)**. When an admin views a student, they don't just see a raw score—the dashboard breaks down exactly *why* the AI chose that score (e.g., '-5% due to low mental health'). It gives the admin X-Ray vision into the AI's logic."
+
+**6. Did you only use a standard Random Forest and nothing else?**
+*Answer:* "No, our pipeline is much more advanced than a basic Random Forest call. We implemented a dual-model ensemble architecture: a `RandomForestRegressor` to predict the continuous exam percentage, and a `RandomForestClassifier` to map habits to an actionable 'Risk Level'. Most importantly, we integrated **SHAP**, a game-theory-based mathematical framework, which runs alongside the models to actively explain the machine's decisions in real-time."
+
+**7. Why did you choose Random Forest over Deep Learning (Neural Networks / TensorFlow)?**
+*Answer:* "Neural Networks are optimized for complex, unstructured data like images, audio, or natural language. However, for structured tabular data (like our student rows of Excel-style habit data), research proves that tree-based ensemble methods like Random Forest consistently outperform deep neural networks. Furthermore, Random Forest prevents extreme overfitting on our 10,000-row dataset, requires vastly less computational power (no GPUs needed for inference), and integrates seamlessly with SHAP for total interpretability."
