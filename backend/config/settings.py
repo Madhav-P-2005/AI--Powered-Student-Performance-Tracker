@@ -154,11 +154,12 @@ SIMPLE_JWT = {
 
 _cors_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
-    origin.strip() for origin in _cors_env.split(',') if origin.strip()
-] if _cors_env else [
+    'https://ai-powered-student-performance-tracker.vercel.app', # Live Vercel Frontend
     'http://localhost:5173',      # Vite dev server (React)
     'http://localhost:3000',      # Alternate React dev server
 ]
+if _cors_env:
+    CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in _cors_env.split(',') if origin.strip()])
 CORS_ALLOW_CREDENTIALS = True
 
 
