@@ -28,9 +28,11 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5ndnyo=2$736ak8f^q%f9ovg3svl%7bx67f+*_dq%!sv!al%08')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Locally: defaults to True. On Render: set DEBUG=False in env vars.
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*']
+# Locally: allows localhost. On Render: set ALLOWED_HOSTS=your-app.onrender.com
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # =============================================================================
@@ -64,6 +66,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',           # <-- Must be at top!
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',      # <-- Serves static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -147,8 +150,12 @@ SIMPLE_JWT = {
 # =============================================================================
 # 7) CORS — Allow React frontend to talk to Django backend
 # =============================================================================
+# Locally: allows localhost. On Render: set CORS_ALLOWED_ORIGINS=https://your-app.vercel.app
 
+_cors_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
+    origin.strip() for origin in _cors_env.split(',') if origin.strip()
+] if _cors_env else [
     'http://localhost:5173',      # Vite dev server (React)
     'http://localhost:3000',      # Alternate React dev server
 ]
@@ -182,6 +189,8 @@ USE_TZ = True
 # =============================================================================
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')    # collectstatic output dir
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,0 +1,39 @@
+# ══════════════════════════════════════════════════════════
+# .gitignore — AI-Powered Student Performance Tracker
+# ══════════════════════════════════════════════════════════
+
+# ── Environment Variables (NEVER commit secrets) ──────────
+.env
+.env.local
+.env.production
+
+# ── Python / Django ───────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+MyEnvironment/
+venv/
+env/
+db.sqlite3
+staticfiles/
+
+# ── Node / React ──────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# ── IDE / OS ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── ML Models (optional — uncomment if .pkl files are too large for GitHub) ──
+# backend/ml_models/*.pkl
