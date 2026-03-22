@@ -35,6 +35,10 @@ const AdminDashboard = () => {
     handleDeleteStudent, confirmDeleteStudent,
     isUploading, fileInputRef, handleFileUpload, exportTableToCSV,
     stats,
+    showCreateAdmin, setShowCreateAdmin,
+    adminFormData, setAdminFormData,
+    showDeleteAdmin, setShowDeleteAdmin,
+    handleCreateAdminSubmit, handleSelfDeleteSubmit,
   } = useAdminDashboard();
 
   const { totalStudents, highRiskCount, mediumRiskCount, lowRiskCount, avgScore, verifiedCount } = stats;
