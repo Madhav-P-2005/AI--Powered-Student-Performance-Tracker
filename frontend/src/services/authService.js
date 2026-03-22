@@ -39,7 +39,13 @@ export const resetPassword = (email, otp, new_password) => {
 
 /**
  * Admin: Delete a user account by ID.
- */
-export const deleteUser = (userId) => {
+ export const deleteUser = (userId) => {
   return api.delete(`/auth/users/${userId}/`);
+};
+
+/**
+ * Admin: Create a new admin account.
+ */
+export const createAdmin = (adminData) => {
+  return api.post('/auth/admins/', adminData);
 };

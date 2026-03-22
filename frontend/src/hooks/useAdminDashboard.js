@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
 import * as predictionService from '../services/predictionService';
 import * as authService from '../services/authService';
 
@@ -20,6 +21,14 @@ const useAdminDashboard = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteModalConfig, setDeleteModalConfig] = useState({ isOpen: false, userId: null, studentName: '' });
   const fileInputRef = useRef(null);
+
+  // Auth Context for Admin Management
+  const { user, logout } = useAuth();
+  
+  // Admin Transfer State
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [adminFormData, setAdminFormData] = useState({ email: '', username: '', password: '' });
+  const [showDeleteAdmin, setShowDeleteAdmin] = useState(false);
 
   // Fetch all predictions on mount
   useEffect(() => {
@@ -80,6 +89,29 @@ const useAdminDashboard = () => {
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to delete student');
       console.error('Delete error:', error);
+    }
+  };
+
+  // Admin Transfer Handlers
+  const handleCreateAdminSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await authService.createAdmin(adminFormData);
+      toast.success(`New Admin ${adminFormData.username} created! You may now safely delete yourself if you are transferring.`);
+      setShowCreateAdmin(false);
+      setAdminFormData({ email: '', username: '', password: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create admin');
+    }
+  };
+
+  const handleSelfDeleteSubmit = async () => {
+    try {
+      await authService.deleteUser(user.id);
+      toast.success('Your admin account has been completely wiped.');
+      logout();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete your account. Are you sure you are the only Admin?');
     }
   };
 
@@ -194,6 +226,12 @@ const useAdminDashboard = () => {
 
     // Stats
     stats: { totalStudents, highRiskCount, mediumRiskCount, lowRiskCount, avgScore, verifiedCount },
+
+    // Admin Transfer
+    showCreateAdmin, setShowCreateAdmin,
+    adminFormData, setAdminFormData,
+    showDeleteAdmin, setShowDeleteAdmin,
+    handleCreateAdminSubmit, handleSelfDeleteSubmit,
   };
 };
 

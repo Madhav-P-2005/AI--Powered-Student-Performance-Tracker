@@ -115,11 +115,27 @@ const AdminDashboard = () => {
       animate="show"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="mb-10">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-500 dark:from-slate-100 dark:to-slate-400">Admin Command Center</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-          System-wide overview of all student predictions and performance analytics.
-        </p>
+      <motion.div variants={itemVariants} className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-500 dark:from-slate-100 dark:to-slate-400">Admin Command Center</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+            System-wide overview of all student predictions and performance analytics.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button 
+            onClick={() => setShowCreateAdmin(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all"
+          >
+            <FiUsers /> Transfer Admin
+          </button>
+          <button 
+            onClick={() => setShowDeleteAdmin(true)}
+            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all"
+          >
+            <FiTrash2 /> Delete My Account
+          </button>
+        </div>
       </motion.div>
 
       {/* Stats Cards */}
@@ -447,6 +463,47 @@ const AdminDashboard = () => {
         title="Are you sure?"
         message={<>You are about to delete <span className="font-bold text-slate-800 dark:text-slate-200">{deleteModalConfig.studentName}</span>'s account. This will permanently remove all their performance data and predictions.</>}
         confirmLabel="Delete Account"
+      />
+
+      {/* Create Admin Modal */}
+      <AnimatePresence>
+        {showCreateAdmin && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowCreateAdmin(false)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Transfer Admin Rights</h3>
+                <button onClick={() => setShowCreateAdmin(false)} className="text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-full"><FiX /></button>
+              </div>
+              <p className="text-sm text-slate-500 mb-6">Create a new Universal Admin account. Once created, you can safely log out and delete your original account.</p>
+              <form onSubmit={handleCreateAdminSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+                  <input type="email" required className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 dark:text-white" value={adminFormData.email} onChange={(e) => setAdminFormData({...adminFormData, email: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                  <input type="text" required className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 dark:text-white" value={adminFormData.username} onChange={(e) => setAdminFormData({...adminFormData, username: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                  <input type="password" required minLength={8} className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 dark:text-white" value={adminFormData.password} onChange={(e) => setAdminFormData({...adminFormData, password: e.target.value})} />
+                </div>
+                <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all">Create Admin</button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Self Modal */}
+      <ConfirmModal
+        isOpen={showDeleteAdmin}
+        onClose={() => setShowDeleteAdmin(false)}
+        onConfirm={handleSelfDeleteSubmit}
+        title="Delete Universal Admin?"
+        message={<><span className="text-red-500 font-bold">WARNING:</span> You are about to permanently delete your own Universal Admin account. This action cannot be undone. Please ensure you have created a replacement Admin first, otherwise the system will be orphaned.</>}
+        confirmLabel="Wipe My Account"
       />
     </motion.div>
   );
