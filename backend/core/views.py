@@ -328,7 +328,7 @@ class AdminDeleteUserView(APIView):
         try:
             user_to_delete = User.objects.get(pk=pk)
             
-            # Prevent deleting other admins
+            # Optional: prevent deleting other admins
             if user_to_delete.role == 'admin':
                 return Response(
                     {'error': 'Cannot delete other admin accounts.'},
