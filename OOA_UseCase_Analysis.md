@@ -145,90 +145,9 @@ The system is composed of **5 core classes** and **2 service-layer classes** tha
 
 ### 1.3 UML Class Diagram
 
-```mermaid
-classDiagram
-    direction TB
+![UML Class Diagram](./UML_Class_Diagram.png)
 
-    class User {
-        +String username
-        +String email
-        +String password
-        +Enum role [student, admin]
-        +String phone
-        +Boolean is_email_verified
-        +DateTime date_joined
-        --
-        +is_student() Boolean
-        +is_admin_user() Boolean
-        +set_password(raw) void
-    }
-
-    class StudentRecord {
-        +Float study_hours
-        +Float self_study_hours
-        +Float online_class_hours
-        +Float attendance_percentage
-        +Float class_participation
-        +Float social_media_hours
-        +Float gaming_hours
-        +Float total_screen_time
-        +Float sleep_hours
-        +Float exercise_minutes
-        +Float caffeine_intake
-        +Float mental_health_score
-        +Boolean part_time_job
-        +Integer upcoming_deadlines
-        +DateTime created_at
-    }
-
-    class Prediction {
-        +Float predicted_score
-        +Enum risk_level [low, medium, high]
-        +Float actual_score
-        +JSON feature_explanations
-        +Float productivity_score
-        +Float burnout_level
-        +DateTime created_at
-        --
-        +accuracy_error() Float
-    }
-
-    class PasswordResetOTP {
-        +String otp
-        +DateTime created_at
-        +Boolean is_used
-        --
-        +is_valid() Boolean
-    }
-
-    class EmailVerificationOTP {
-        +String email
-        +String otp
-        +DateTime created_at
-        +Boolean is_used
-        --
-        +is_valid() Boolean
-    }
-
-    class MLPredictionEngine {
-        <<service>>
-        +predict_student(record) Dict
-        +classify_risk(score) String
-        +compute_shap(features) Dict
-    }
-
-    class EmailService {
-        <<service>>
-        +send_otp_email(email, otp) void
-        +send_registration_otp(email, otp) void
-    }
-
-    User "1" --> "*" StudentRecord : submits
-    StudentRecord "1" --> "1" Prediction : generates
-    User "1" --> "*" PasswordResetOTP : requests
-    StudentRecord ..> MLPredictionEngine : uses
-    User ..> EmailService : notified by
-```
+> **Download:** Right-click the image above → "Save image as" to download the UML Class Diagram PNG.
 
 ---
 
@@ -268,56 +187,9 @@ classDiagram
 
 ### 2.3 Use Case Diagram
 
-```mermaid
-graph LR
-    subgraph Actors
-        S["👨‍🎓 Student / Parent"]
-        A["👩‍🏫 Admin (Teacher)"]
-        ML["🤖 ML Engine"]
-        EM["📧 Email Service"]
-    end
+![Use Case Diagram](./Use_Case_Diagram.png)
 
-    subgraph System["AI-Powered Student Performance Tracker"]
-        UC1["UC1: Register with Email Verification"]
-        UC2["UC2: Login (JWT)"]
-        UC3["UC3: Forgot Password"]
-        UC4["UC4: Submit Academic Data"]
-        UC5["UC5: Run AI Prediction"]
-        UC6["UC6: View Dashboard & Alerts"]
-        UC7["UC7: View Trend Analysis"]
-        UC8["UC8: View All Students"]
-        UC9["UC9: Enter Actual Score"]
-        UC10["UC10: Delete Student Account"]
-        UC11["UC11: Upload Bulk CSV"]
-        UC12["UC12: Export Data to CSV"]
-        UC13["UC13: Transfer Admin Rights"]
-        UC14["UC14: View Accuracy Analytics"]
-    end
-
-    S --> UC1
-    S --> UC2
-    S --> UC3
-    S --> UC4
-    S --> UC5
-    S --> UC6
-    S --> UC7
-
-    A --> UC2
-    A --> UC3
-    A --> UC8
-    A --> UC9
-    A --> UC10
-    A --> UC11
-    A --> UC12
-    A --> UC13
-    A --> UC14
-
-    UC1 --> EM
-    UC3 --> EM
-    UC5 --> ML
-    UC11 --> ML
-end
-```
+> **Download:** Right-click the image above → "Save image as" to download the Use Case Diagram PNG.
 
 ---
 
