@@ -11,19 +11,21 @@
 ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
 ![Render](https://img.shields.io/badge/Render-%2346E3B7.svg?style=for-the-badge&logo=render&logoColor=white)
 
-An advanced full-stack web application designed to proactively predict student academic performance and burnout risk using Machine Learning (Random Forest) and Explainable AI (SHAP). 
+An advanced full-stack web application designed to proactively predict student academic performance and burnout risk using Machine Learning (Random Forest) and Explainable AI (SHAP).
 
 This project aims to move away from reactive grading (finding out a student failed *after* the midterm) to proactive intervention (detecting poor lifestyle/study habits weeks beforehand).
 
 ## 🚀 Features
 
 ### Student Portal
+
 - **Intelligent Dashboard**: View your predicted exam scores and current Risk Level (Low/Medium/High).
 - **Explainable AI (SHAP)**: See exactly *why* you got your score. The AI breaks down the positive and negative impacts of your habits (e.g., "-5% due to low sleep", "+12% due to high study hours").
 - **Automated Alerts**: Receive dynamic warnings for high screen time, low mental health, or declining performance trends.
 - **Secure Authentication**: JWT-based login and Email OTP-verified registration.
 
 ### Admin Command Center
+
 - **System-Wide Analytics**: Track total students, average predicted scores, and risk distributions.
 - **Individual Monitoring**: View personalized student habits and SHAP breakdowns to provide actionable counseling.
 - **Batch CSV Predictions**: Upload an entire classroom's data in CSV format to run predictions on hundreds of students instantly.
@@ -45,11 +47,13 @@ This project aims to move away from reactive grading (finding out a student fail
 As an aspiring Django/React developer, follow these steps to securely set up the environment from scratch.
 
 ### 1. Prerequisites
+
 - Python 3.9+
 - Node.js 18+
 - Git
 
 ### 2. Backend Setup (Django & ML)
+
 Navigate to the `backend` directory and set up your virtual environment. Virtual environments prevent package conflicts between different Python projects.
 
 ```bash
@@ -64,12 +68,14 @@ source MyEnvironment/bin/activate
 ```
 
 Install the required Python dependencies:
+
 ```bash
 pip install django djangorestframework djangorestframework-simplejwt django-cors-headers python-dotenv psycopg2-binary
 pip install pandas scikit-learn joblib shap
 ```
 
 Run database migrations to build your tables, and create an admin account:
+
 ```bash
 python manage.py makemigrations core students predictions
 python manage.py migrate
@@ -77,20 +83,24 @@ python manage.py createsuperuser
 ```
 
 Start the Django development server:
+
 ```bash
 python manage.py runserver
 ```
 
 ### 3. Frontend Setup (React & Tailwind)
+
 Open a new terminal, navigate to the `frontend` directory, and install the Node modules.
 
 ```bash
 cd frontend
 npm install
 ```
+
 *(Note: If setting up from absolute scratch in the future, the base UI packages were: `npm install react-router-dom framer-motion react-hook-form axios react-icons react-toastify`)*
 
 Start the Vite development server:
+
 ```bash
 npm run dev
 ```
@@ -101,7 +111,7 @@ npm run dev
 
 The AI engine runs natively within the Django backend, requiring no external paid APIs (like OpenAI).
 
-1. **The Model**: 
+1. **The Model**:
    We trained two models: a `RandomForestRegressor` (predicts the exact score 0-100) and a `RandomForestClassifier` (predicts Risk Level). The models were trained by combining two major Kaggle datasets:
    - [**Student Performance Dataset**](https://www.kaggle.com/datasets/nabeelqureshitiii/student-performance-dataset) (Academic Metrics: study hours, attendance, etc.)
    - [**Ultimate Student Productivity Dataset**](https://www.kaggle.com/datasets/sampathvinayakbablu/ultimate-student-productivity-dataset) (Lifestyle Metrics: sleep, social media, mental health)
@@ -142,6 +152,7 @@ Project Root/
 This project is configured to run the Django backend on **Render**, the Vite/React frontend on **Vercel**, and host the PostgreSQL database on **Supabase**.
 
 ### Phase 1: Deploy Backend on Render
+
 1. Go to [Render](https://render.com) and create a new **Web Service**.
 2. Connect your GitHub repository.
 3. Configure the following settings:
@@ -159,6 +170,7 @@ This project is configured to run the Django backend on **Render**, the Vite/Rea
 5. Click **Deploy**. Once live, copy your backend URL (e.g., `https://my-backend.onrender.com`).
 
 ### Phase 2: Deploy Frontend on Vercel
+
 1. Go to [Vercel](https://vercel.com) and click **Import Project**.
 2. Connect your GitHub repository and configure:
    - **Framework Preset**: `Vite`
@@ -168,13 +180,18 @@ This project is configured to run the Django backend on **Render**, the Vite/Rea
 4. Click **Deploy**. Once built, copy your live frontend URL (e.g., `https://my-frontend.vercel.app`).
 
 ### Phase 3: Final CORS Wiring (Critical)
+
 1. Go back to your Render Dashboard → Environment Variables.
 2. Add one final variable to tell Django it's allowed to talk to Vercel:
    - `CORS_ALLOWED_ORIGINS`: `https://your-frontend-url.vercel.app`
 3. Save changes. Render will automatically restart. Your full-stack app is now securely communicating!
 
----
+### 📝 Final Steps to reach 100 Pages in MS Word:
 
-## 🤝 Next Steps for Future Development
-- Deploy the Django backend to Render/Railway and the React frontend to Vercel/Netlify.
-- Integrate real-time websockets (Django Channels) for instant Admin Dashboard updates.
+1. Copy the entire markdown file and paste it into MS Word.
+2. Set the font to  **Times New Roman** , size  **12** , with  **1.5 or Double Spacing** .
+3. **CRITICAL** : The text I wrote gives you a massive foundation, but to hit 100 pages, you *must* do what all college reports do:
+
+* **Insert all your diagrams** (UML, Use Case) taking up a full page each.
+* **Insert screenshots** of every single page of your website (Home, Login, Student Dashboard, Admin Dashboard, CSV Upload) in Section 7.
+* **Paste your raw code** : Under Section 6, paste the full code of your `views.py`, `models.py`, `Home.jsx`, and `App.jsx`. Code takes up dozens of pages very quickly!
