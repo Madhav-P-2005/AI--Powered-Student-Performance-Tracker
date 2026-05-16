@@ -251,6 +251,9 @@ The project adopted a multi-cloud deployment strategy:
 *   **Frontend:** Vercel Edge Network.
 Cross-Origin Resource Sharing (CORS) was strictly configured in Django to only accept payloads originating from the Vercel domain.
 
+![Deployment Architecture](Deployment_Architecture.png)
+*Figure 4: Full-Stack Cloud Deployment Architecture*
+
 ---
 
 ## 8. Test Case
