@@ -2,10 +2,38 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiUser, FiMail, FiLock, FiPhone, FiArrowLeft, FiCheckCircle, FiArrowRight } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiPhone, FiArrowLeft, FiCheckCircle, FiArrowRight, FiCheck, FiX as FiXIcon } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { sendRegistrationOTP } from '../services/authService';
+
+// Password strength calculator
+const getPasswordStrength = (password) => {
+  if (!password) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(password)) score++;
+  const levels = [
+    { label: '', color: '' },
+    { label: 'Very Weak', color: 'bg-red-500' },
+    { label: 'Weak', color: 'bg-orange-500' },
+    { label: 'Fair', color: 'bg-amber-500' },
+    { label: 'Strong', color: 'bg-lime-500' },
+    { label: 'Excellent', color: 'bg-emerald-500' },
+  ];
+  return { score, ...levels[score] };
+};
+
+// Password rule check component
+const PasswordRule = ({ met, text }) => (
+  <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+    {met ? <FiCheck size={12} /> : <FiXIcon size={12} />}
+    {text}
+  </div>
+);
 
 const Register = () => {
   const { register: registerForm, handleSubmit, formState: { errors }, watch } = useForm();
@@ -149,7 +177,7 @@ const Register = () => {
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Username</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><FiUser className="text-indigo-400" /></div>
-                      <input type="text" className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.username ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="johndoe123" {...registerForm('username', { required: 'Username is required' })} />
+                      <input type="text" className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.username ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="johndoe123" {...registerForm('username', { required: 'Username is required', minLength: { value: 3, message: 'Username must be at least 3 characters' }, maxLength: { value: 20, message: 'Username cannot exceed 20 characters' }, pattern: { value: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers and underscores allowed' } })} />
                     </div>
                     {errors.username && <p className="mt-1.5 text-xs font-bold text-red-500 dark:text-red-400">{errors.username.message}</p>}
                   </div>
@@ -179,17 +207,38 @@ const Register = () => {
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Phone Number <span className="text-slate-400 dark:text-slate-400 font-medium">(Optional)</span></label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><FiPhone className="text-indigo-400" /></div>
-                    <input type="text" className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all" placeholder="+1234567890" {...registerForm('phone')} />
+                    <input type="tel" inputMode="numeric" maxLength={10} className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.phone ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="9876543210" onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Tab','Delete','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault(); }} {...registerForm('phone', { validate: (value) => { if (!value || value === '') return true; if (!/^\d{10}$/.test(value)) return 'Phone number must be exactly 10 digits'; if (!/^[6-9]/.test(value)) return 'Phone number must start with 6, 7, 8, or 9'; return true; } })} />
                   </div>
+                  {errors.phone && <p className="mt-1.5 text-xs font-bold text-red-500 dark:text-red-400">{errors.phone.message}</p>}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Password</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><FiLock className="text-indigo-400" /></div>
-                      <input type="password" className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.password ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="••••••••" {...registerForm('password', { required: 'Password is required', minLength: { value: 6, message: 'Must be at least 6 characters' } })} />
+                      <input type="password" className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.password ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="••••••••" {...registerForm('password', { required: 'Password is required', minLength: { value: 8, message: 'Must be at least 8 characters' }, validate: { hasUppercase: v => /[A-Z]/.test(v) || 'Must contain an uppercase letter', hasLowercase: v => /[a-z]/.test(v) || 'Must contain a lowercase letter', hasNumber: v => /[0-9]/.test(v) || 'Must contain a number', hasSpecial: v => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(v) || 'Must contain a special character' } })} />
                     </div>
+                    {/* Password Strength Meter */}
+                    {password && (
+                      <div className="mt-2.5 space-y-2">
+                        <div className="flex gap-1">
+                          {[1,2,3,4,5].map(i => (
+                            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= getPasswordStrength(password).score ? getPasswordStrength(password).color : 'bg-slate-200 dark:bg-slate-700'}`} />
+                          ))}
+                        </div>
+                        <p className={`text-xs font-bold ${getPasswordStrength(password).score <= 2 ? 'text-red-500' : getPasswordStrength(password).score <= 3 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                          {getPasswordStrength(password).label}
+                        </p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          <PasswordRule met={password?.length >= 8} text="8+ characters" />
+                          <PasswordRule met={/[A-Z]/.test(password)} text="Uppercase letter" />
+                          <PasswordRule met={/[a-z]/.test(password)} text="Lowercase letter" />
+                          <PasswordRule met={/[0-9]/.test(password)} text="Number" />
+                          <PasswordRule met={/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(password)} text="Special character" />
+                        </div>
+                      </div>
+                    )}
                     {errors.password && <p className="mt-1.5 text-xs font-bold text-red-500 dark:text-red-400">{errors.password.message}</p>}
                   </div>
 
