@@ -1,13 +1,35 @@
 // components/StudentPredictionView.jsx — Reusable full prediction dashboard view
 // Used by: Dashboard.jsx (for student's own view) and AdminStudentView.jsx (admin viewing a student)
 
-import { FiAlertCircle, FiTrendingUp, FiClock, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiAlertCircle, FiTrendingUp, FiClock, FiArrowUp, FiArrowDown, FiInfo, FiHelpCircle } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { FEATURE_META, CATEGORY_INFO, itemVariants } from '../config/constants';
+import { FEATURE_META, CATEGORY_INFO, SCALE_LABELS, FEATURE_BENCHMARKS, itemVariants } from '../config/constants';
 import RiskBadge from './ui/RiskBadge';
+import { useState } from 'react';
 
 // ============================================================
-// Generate a natural language insight for a feature
+// Get human-readable label for ordinal (1-5) features
+// ============================================================
+function getScaleLabel(feature, value) {
+  const scales = SCALE_LABELS[feature];
+  if (!scales) return null;
+  const rounded = Math.round(value);
+  return scales[rounded] || null;
+}
+
+// ============================================================
+// Get benchmark verdict for a feature value
+// ============================================================
+function getBenchmark(feature, value) {
+  const bench = FEATURE_BENCHMARKS[feature];
+  if (!bench) return null;
+  const threshold = bench.thresholds.find(t => value <= t.max);
+  return threshold ? { ...threshold, context: bench.context } : { verdict: 'Unknown', reason: '', context: bench.context };
+}
+
+// ============================================================
+// Generate rich, explanatory insights for each feature
+// Explains WHY, not just WHAT
 // ============================================================
 function getInsight(feature, value, impact) {
   const meta = FEATURE_META[feature];
@@ -17,52 +39,47 @@ function getInsight(feature, value, impact) {
   const absImpact = Math.abs(impact);
   if (absImpact < 0.05) return null;
 
-  const insights = {
-    study_hours: isPositive
-      ? `Your ${value} hrs/wk of study is boosting your score. Top performers study 20+ hrs/wk.`
-      : `Only ${value} hrs/wk of study is holding you back. Aim for at least 15 hrs/wk.`,
-    self_study_hours: isPositive
-      ? `Strong self-study habit (${value} hrs/wk) is a key predictor of success.`
-      : `More independent study time would significantly improve your forecast.`,
-    attendance_percentage: isPositive
-      ? `${value}% attendance is contributing positively. Students above 85% score 12% higher.`
-      : `Low attendance (${value}%) is dragging your score down. Each 10% increase adds ~4 points.`,
-    social_media_hours: isPositive
-      ? `Your social media usage is within healthy limits.`
-      : `${value} hrs/day on social media is reducing focus. Students under 2 hrs score 8% higher.`,
-    gaming_hours: isPositive
-      ? `Gaming time is controlled and not impacting performance.`
-      : `${value} hrs/day gaming is cutting into study time. Try limiting to 1 hr/day.`,
-    sleep_hours: isPositive
-      ? `Getting ${value} hours of sleep supports cognitive function and memory retention.`
-      : `Only ${value} hrs of sleep is impairing performance. 7-8 hours is optimal for exam readiness.`,
-    exercise_minutes: isPositive
-      ? `Regular exercise (${value} min/day) improves focus and reduces stress — great for scores.`
-      : `Very little exercise detected. Even 20 minutes of daily activity boosts cognitive performance by 15%.`,
-    mental_health_score: isPositive
-      ? `Good mental health (${value}/5) is strongly correlated with academic success.`
-      : `Low mental health score (${value}/5) is a significant risk factor. Consider talking to a counselor.`,
-    caffeine_intake: isPositive
-      ? `Moderate caffeine intake is fine.`
-      : `High caffeine (${value} cups/day) may indicate stress or poor sleep patterns.`,
-    part_time_job: isPositive
-      ? `Employment status is not negatively affecting your performance.`
-      : `Having a part-time job is reducing available study time and energy.`,
-    total_screen_time: isPositive
-      ? `Screen time is within manageable limits.`
-      : `${value} hrs/day of screen time is excessive. Non-academic screen time should stay under 4 hrs.`,
-    class_participation: isPositive
-      ? `Active class participation (${value}/5) shows engagement, a strong success predictor.`
-      : `Low class participation (${value}/5) correlates with lower understanding and scores.`,
-    upcoming_deadlines: isPositive
-      ? `Deadline load is manageable.`
-      : `${value} active deadlines may be causing performance pressure and stress.`,
-    online_class_hours: isPositive
-      ? `Online class engagement is contributing positively.`
-      : `Online class time could be improved for better results.`,
-  };
+  const scaleLabel = getScaleLabel(feature, value);
+  const benchmark = getBenchmark(feature, value);
 
-  return insights[feature] || null;
+  // For ordinal scales (1-5), show the label prominently
+  if (scaleLabel) {
+    const levelText = `${scaleLabel.emoji} ${value}/5 — "${scaleLabel.label}"`;
+    if (isPositive) {
+      return `${levelText}: ${scaleLabel.description}. ${benchmark ? benchmark.reason : ''} This is positively contributing to the predicted score.`;
+    } else {
+      return `${levelText}: ${scaleLabel.description}. ${benchmark ? benchmark.reason : ''} This is pulling the predicted score down.`;
+    }
+  }
+
+  // For continuous features, use benchmark-based explanations
+  if (benchmark) {
+    const verdictText = `Current value: ${value} ${meta.unit} (${benchmark.verdict})`;
+    if (isPositive) {
+      return `${verdictText} — ${benchmark.reason} The AI model recognizes this as a strength, contributing positively to the score. Research-backed optimal range: ${meta.goodRange} ${meta.unit}.`;
+    } else {
+      return `${verdictText} — ${benchmark.reason} The AI model identifies this as an area for improvement. Research-backed optimal range: ${meta.goodRange} ${meta.unit}.`;
+    }
+  }
+
+  // Fallback
+  return isPositive
+    ? `Your value of ${value} ${meta.unit} is contributing positively. Optimal range: ${meta.goodRange} ${meta.unit}.`
+    : `Your value of ${value} ${meta.unit} is below optimal. Aim for ${meta.goodRange} ${meta.unit} to improve.`;
+}
+
+// ============================================================
+// Format display value — shows labels for ordinal features
+// ============================================================
+function formatDisplayValue(feature, value, unit) {
+  const scaleLabel = getScaleLabel(feature, value);
+  if (scaleLabel) {
+    return { text: `${value}/5`, subtext: scaleLabel.label, emoji: scaleLabel.emoji };
+  }
+  if (feature === 'part_time_job') {
+    return { text: value ? 'Yes' : 'No', subtext: value ? 'Working' : 'Not working', emoji: null };
+  }
+  return { text: `${value}`, subtext: unit, emoji: null };
 }
 
 // ============================================================
@@ -82,6 +99,9 @@ const processShapData = (explanations) => {
       ...meta,
       percentage: Math.round(percentage),
       insight: getInsight(key, data.value, data.impact),
+      benchmark: getBenchmark(key, data.value),
+      scaleLabel: getScaleLabel(key, data.value),
+      displayValue: formatDisplayValue(key, data.value, meta.unit),
     };
   }).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 
@@ -105,6 +125,66 @@ const processShapData = (explanations) => {
 };
 
 // ============================================================
+// FeatureCard — Rich card for strengths/weaknesses
+// ============================================================
+const FeatureCard = ({ f, type, isAdminView }) => {
+  const isPositive = type === 'positive';
+  const colors = isPositive
+    ? { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-100 dark:border-emerald-800/30', text: 'text-emerald-800 dark:text-emerald-300', accent: 'text-emerald-700 dark:text-emerald-400', insightBg: 'bg-emerald-100/50 dark:bg-emerald-900/40', insightText: 'text-emerald-700 dark:text-emerald-300', badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' }
+    : { bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-100 dark:border-red-800/30', text: 'text-red-800 dark:text-red-300', accent: 'text-red-700 dark:text-red-400', insightBg: 'bg-red-100/50 dark:bg-red-900/40', insightText: 'text-red-700 dark:text-red-300', badge: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' };
+
+  return (
+    <div className={`${colors.bg} border ${colors.border} rounded-xl p-4 space-y-3`}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{f.icon}</span>
+          <span className={`font-bold ${colors.text}`}>{f.label}</span>
+        </div>
+        {f.benchmark && (
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${colors.badge}`}>
+            {f.benchmark.verdict}
+          </span>
+        )}
+      </div>
+
+      {/* Value Display — with scale labels */}
+      <div className="flex items-baseline gap-2">
+        {f.displayValue.emoji && <span className="text-lg">{f.displayValue.emoji}</span>}
+        <span className={`text-2xl font-black ${colors.accent}`}>
+          {f.displayValue.text}
+        </span>
+        {f.displayValue.subtext && (
+          <span className={`text-xs font-medium ${isPositive ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>
+            {f.displayValue.subtext}
+          </span>
+        )}
+      </div>
+
+      {/* Optimal Range */}
+      <div className="text-xs text-gray-600 dark:text-gray-400">
+        Optimal range: <strong>{f.goodRange} {f.unit}</strong>
+      </div>
+
+      {/* Rich Insight — explains WHY, not just what */}
+      {f.insight && (
+        <div className={`text-xs ${colors.insightText} ${colors.insightBg} p-2.5 rounded-lg leading-relaxed`}>
+          <strong>💡 Why this matters:</strong> {f.insight}
+        </div>
+      )}
+
+      {/* Research Context */}
+      {f.benchmark?.context && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 italic leading-relaxed border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
+          📊 {f.benchmark.context}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// ============================================================
 // StudentPredictionView — The main reusable component
 // Props:
 //   prediction  — single prediction object with feature_explanations
@@ -113,6 +193,8 @@ const processShapData = (explanations) => {
 //   isAdminView — boolean, controls header text
 // ============================================================
 const StudentPredictionView = ({ prediction, alerts, studentName, isAdminView = false }) => {
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
   if (!prediction) return null;
 
   const shapData = processShapData(prediction.feature_explanations);
@@ -213,12 +295,55 @@ const StudentPredictionView = ({ prediction, alerts, studentName, isAdminView = 
       {/* AI Analysis Report */}
       <motion.div variants={itemVariants} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
         <div className="p-8 border-b border-indigo-100/50 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/30 dark:to-purple-900/30">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            🧠 AI Performance Analysis Report
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-            Powered by SHAP (SHapley Additive exPlanations) — showing how each factor influenced {isAdminView ? 'this student\'s' : 'your'} predicted score.
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                🧠 AI Performance Analysis Report
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Each factor below shows its real-world impact on {isAdminView ? 'this student\'s' : 'your'} predicted score, with research-backed explanations.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowHowItWorks(!showHowItWorks)}
+              className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30 px-3 py-1.5 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors shrink-0"
+            >
+              <FiHelpCircle size={14} /> How does this work?
+            </button>
+          </div>
+
+          {/* How It Works Explainer */}
+          {showHowItWorks && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="mt-4 bg-white dark:bg-slate-700/50 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800/30 space-y-3"
+            >
+              <h4 className="font-bold text-sm text-indigo-800 dark:text-indigo-300 flex items-center gap-2">
+                <FiInfo size={16} /> Understanding the AI Analysis
+              </h4>
+              <div className="text-xs text-gray-700 dark:text-gray-300 space-y-2 leading-relaxed">
+                <p>
+                  <strong>🔬 What is SHAP?</strong> SHAP (SHapley Additive exPlanations) is a mathematically proven method from game theory that explains AI predictions. It calculates exactly how much each input feature (like study hours, sleep, attendance) pushed {isAdminView ? 'the' : 'your'} predicted score up or down.
+                </p>
+                <p>
+                  <strong>📊 How are the percentages calculated?</strong> The AI model (Random Forest) considers all 14 lifestyle factors together to predict a score. SHAP then isolates each factor's individual contribution. The percentage shows how much of the total prediction change is due to that specific factor. For example, if "Study Hours" shows 25%, it means study hours alone account for 25% of the total factors influencing {isAdminView ? 'the' : 'your'} score.
+                </p>
+                <p>
+                  <strong>🟢 Green = Positive Impact:</strong> This factor is pushing {isAdminView ? 'the' : 'your'} score HIGHER than the average student. The AI learned from training data that students with similar values in this area tend to score better.
+                </p>
+                <p>
+                  <strong>🔴 Red = Negative Impact:</strong> This factor is pulling {isAdminView ? 'the' : 'your'} score LOWER than average. Improving this area would directly raise the predicted score.
+                </p>
+                <p>
+                  <strong>📐 What does "±X points" mean?</strong> It's the exact number of points this factor adds to or subtracts from {isAdminView ? 'the' : 'your'} score. For example, "+5.2 pts" means this factor alone raised the prediction by 5.2 points compared to an average student.
+                </p>
+                <p>
+                  <strong>🎯 Benchmarks:</strong> Each factor is compared against research-backed optimal ranges derived from academic studies on student performance. These benchmarks explain why a value is considered good or needs improvement.
+                </p>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {!shapData ? (
@@ -234,28 +359,11 @@ const StudentPredictionView = ({ prediction, alerts, studentName, isAdminView = 
               {topPositive.length > 0 && (
                 <div>
                   <h4 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <FiArrowUp className="text-emerald-500" /> Factors Boosting {isAdminView ? 'the' : 'Your'} Score
+                    <FiArrowUp className="text-emerald-500" /> Top Strengths — Boosting {isAdminView ? 'the' : 'Your'} Score
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {topPositive.map((f) => (
-                      <div key={f.key} className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl">{f.icon}</span>
-                          <span className="font-bold text-emerald-800 dark:text-emerald-300">{f.label}</span>
-                        </div>
-                        <div className="flex items-baseline gap-2 mb-3">
-                          <span className="text-2xl font-black text-emerald-700 dark:text-emerald-400">{f.percentage}%</span>
-                          <span className="text-xs text-emerald-600 dark:text-emerald-500 font-medium">positive contribution</span>
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          Value: <strong>{f.value} {f.unit}</strong> · Ideal: <strong>{f.goodRange} {f.unit}</strong>
-                        </div>
-                        {f.insight && (
-                          <p className="text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-900/40 p-2 rounded-lg mt-2">
-                            {f.insight}
-                          </p>
-                        )}
-                      </div>
+                      <FeatureCard key={f.key} f={f} type="positive" isAdminView={isAdminView} />
                     ))}
                   </div>
                 </div>
@@ -265,28 +373,11 @@ const StudentPredictionView = ({ prediction, alerts, studentName, isAdminView = 
               {topNegative.length > 0 && (
                 <div>
                   <h4 className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <FiArrowDown className="text-red-500" /> Factors Reducing {isAdminView ? 'the' : 'Your'} Score
+                    <FiArrowDown className="text-red-500" /> Areas for Improvement — Reducing {isAdminView ? 'the' : 'Your'} Score
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {topNegative.map((f) => (
-                      <div key={f.key} className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl">{f.icon}</span>
-                          <span className="font-bold text-red-800 dark:text-red-300">{f.label}</span>
-                        </div>
-                        <div className="flex items-baseline gap-2 mb-3">
-                          <span className="text-2xl font-black text-red-700 dark:text-red-400">{f.percentage}%</span>
-                          <span className="text-xs text-red-600 dark:text-red-500 font-medium">negative impact</span>
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          Value: <strong>{f.value} {f.unit}</strong> · Ideal: <strong>{f.goodRange} {f.unit}</strong>
-                        </div>
-                        {f.insight && (
-                          <p className="text-xs text-red-700 dark:text-red-300 bg-red-100/50 dark:bg-red-900/40 p-2 rounded-lg mt-2">
-                            {f.insight}
-                          </p>
-                        )}
-                      </div>
+                      <FeatureCard key={f.key} f={f} type="negative" isAdminView={isAdminView} />
                     ))}
                   </div>
                 </div>
@@ -301,7 +392,14 @@ const StudentPredictionView = ({ prediction, alerts, studentName, isAdminView = 
                   {features.filter(f => f.percentage > 0).map((f) => (
                     <div key={f.key} className="flex items-center gap-4">
                       <div className="w-6 text-center">{f.icon}</div>
-                      <div className="w-36 text-sm font-medium text-gray-700 dark:text-slate-300 truncate">{f.label}</div>
+                      <div className="w-36 text-sm font-medium text-gray-700 dark:text-slate-300 truncate">
+                        {f.label}
+                        {f.scaleLabel && (
+                          <span className="text-xs text-gray-400 dark:text-slate-500 block">
+                            {f.scaleLabel.emoji} {f.scaleLabel.label}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center h-6 bg-gray-50 dark:bg-slate-700/50 rounded-full overflow-hidden relative">
                           <div className="absolute left-1/2 h-full w-px bg-gray-300 dark:bg-slate-600 z-10"></div>
@@ -314,10 +412,15 @@ const StudentPredictionView = ({ prediction, alerts, studentName, isAdminView = 
                           )}
                         </div>
                       </div>
-                      <div className={`w-14 text-right text-sm font-bold ${
-                        f.direction === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
-                      }`}>
-                        {f.direction === 'positive' ? '+' : '-'}{f.percentage}%
+                      <div className="w-20 text-right">
+                        <div className={`text-sm font-bold ${
+                          f.direction === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
+                        }`}>
+                          {f.direction === 'positive' ? '+' : '-'}{f.percentage}%
+                        </div>
+                        {f.benchmark && (
+                          <div className="text-xs text-gray-400 dark:text-slate-500">{f.benchmark.verdict}</div>
+                        )}
                       </div>
                     </div>
                   ))}
