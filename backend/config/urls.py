@@ -17,4 +17,7 @@ urlpatterns = [
 
     # Prediction APIs — /api/v1/predictions/run/, /history/
     path('api/v1/predictions/', include('predictions.urls')),
+
+    # Root Health Check (for Render Port Scanner)
+    path('', lambda request: __import__('django.http').http.HttpResponse("Server is up and running!", status=200)),
 ]

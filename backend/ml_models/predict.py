@@ -31,32 +31,30 @@ def _get_models():
         print(f"✅ ML models loaded successfully in {elapsed:.1f}s!")
     return score_regressor, risk_classifier, feature_columns
 
-# SHAP is loaded LAZILY — not on startup to prevent Render timeout
-SHAP_AVAILABLE = False
+# SHAP explainer will be loaded lazily
 shap_explainer = None
-
-try:
-    import shap
-    SHAP_AVAILABLE = True
-    print("✅ SHAP library found. Explainer will initialize on first prediction.")
-except ImportError:
-    print("⚠️  SHAP not installed. Using feature importance fallback.")
-
 
 def _get_shap_explainer():
     """Lazily initialize SHAP explainer on first use, not on server boot."""
     global shap_explainer
-    if shap_explainer is None and SHAP_AVAILABLE:
+    if shap_explainer is None:
         try:
+            import shap
             print("🔄 Initializing SHAP TreeExplainer (first prediction only)...")
             start = time.time()
             score_reg, _, _ = _get_models()
             shap_explainer = shap.TreeExplainer(score_reg)
             elapsed = time.time() - start
             print(f"✅ SHAP explainer ready in {elapsed:.1f}s")
+        except ImportError:
+            print("⚠️  SHAP not installed. Using feature importance fallback.")
+            shap_explainer = False  # Mark as False to avoid repeated import attempts
         except Exception as e:
             print(f"⚠️  SHAP explainer failed: {e}. Using fallback.")
-    return shap_explainer
+            shap_explainer = False
+            
+    # Return explainer only if it's an actual object (not False or None)
+    return shap_explainer if shap_explainer is not False else None
 
 
 def _get_feature_importance_fallback(features):
