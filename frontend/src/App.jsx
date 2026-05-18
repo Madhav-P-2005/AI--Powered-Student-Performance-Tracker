@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminStudentView from './pages/AdminStudentView';
 import StudentForm from './pages/StudentForm';
 import ForgotPassword from './pages/ForgotPassword';
 import { useAuth } from './context/AuthContext';
@@ -35,6 +36,7 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute><SmartDashboard /></ProtectedRoute>} />
+          <Route path="/admin/student/:predictionId" element={<ProtectedRoute allowedRoles={['admin']}><AdminStudentView /></ProtectedRoute>} />
           <Route path="/submit" element={<ProtectedRoute><StudentForm /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} /> 
         </Routes>

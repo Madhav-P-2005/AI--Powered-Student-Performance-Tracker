@@ -1,4 +1,5 @@
-import { FiUsers, FiAlertTriangle, FiCheckCircle, FiTrendingUp, FiSearch, FiEdit3, FiSave, FiX, FiTrash2, FiUploadCloud, FiDownload } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiUsers, FiAlertTriangle, FiCheckCircle, FiTrendingUp, FiSearch, FiEdit3, FiSave, FiX, FiTrash2, FiUploadCloud, FiDownload, FiExternalLink } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Chart as ChartJS,
@@ -23,6 +24,7 @@ import EmptyState from '../components/ui/EmptyState';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const {
     predictions, filteredPredictions, loading,
     selectedStudent, setSelectedStudent,
@@ -298,10 +300,11 @@ const AdminDashboard = () => {
                       <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{idx + 1}</td>
                       <td className="px-6 py-4">
                         <button 
-                          onClick={() => setSelectedStudent(pred)}
-                          className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all text-left"
+                          onClick={() => navigate(`/admin/student/${pred.id}`)}
+                          className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all text-left inline-flex items-center gap-1.5"
                         >
                           {pred.user_name || 'Unknown'}
+                          <FiExternalLink size={12} className="opacity-50" />
                         </button>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
@@ -385,213 +388,7 @@ const AdminDashboard = () => {
         </motion.div>
       )}
 
-      {/* Student Full Dashboard Modal */}
-      <AnimatePresence>
-        {selectedStudent && (() => {
-          const s = selectedStudent;
-          const explanations = s.feature_explanations || {};
-          const hasExplanations = Object.keys(explanations).length > 0;
-          const score = s.predicted_score;
-          const risk = s.risk_level;
-          const riskColors = { low: 'text-emerald-500', medium: 'text-amber-500', high: 'text-rose-500' };
-          const riskBgColors = { low: 'bg-emerald-500', medium: 'bg-amber-500', high: 'bg-rose-500' };
-          const ringColor = risk === 'low' ? '#10b981' : risk === 'medium' ? '#f59e0b' : '#ef4444';
-          const circumference = 2 * Math.PI * 54;
-          const offset = circumference - (score / 100) * circumference;
 
-          // Feature display config
-          const featureConfig = {
-            study_hours: { label: 'Study Hours', unit: 'hrs/day', icon: '📚' },
-            self_study_hours: { label: 'Self Study', unit: 'hrs/wk', icon: '🧠' },
-            online_class_hours: { label: 'Online Classes', unit: 'hrs/wk', icon: '💻' },
-            attendance_percentage: { label: 'Attendance', unit: '%', icon: '📋' },
-            class_participation: { label: 'Participation', unit: '/10', icon: '🙋' },
-            social_media_hours: { label: 'Social Media', unit: 'hrs/day', icon: '📱' },
-            gaming_hours: { label: 'Gaming', unit: 'hrs/day', icon: '🎮' },
-            total_screen_time: { label: 'Screen Time', unit: 'hrs/day', icon: '🖥️' },
-            sleep_hours: { label: 'Sleep', unit: 'hrs/day', icon: '😴' },
-            exercise_minutes: { label: 'Exercise', unit: 'min/day', icon: '🏃' },
-            caffeine_intake: { label: 'Caffeine', unit: 'mg/day', icon: '☕' },
-            mental_health_score: { label: 'Mental Health', unit: '/10', icon: '💚' },
-            part_time_job: { label: 'Part-time Job', unit: '', icon: '💼' },
-            upcoming_deadlines: { label: 'Deadlines', unit: 'active', icon: '⏰' },
-          };
-
-          // Sort explanations by absolute impact (highest first)
-          const sortedFeatures = Object.entries(explanations).sort((a, b) => Math.abs(b[1].impact) - Math.abs(a[1].impact));
-          const maxAbsImpact = sortedFeatures.length > 0 ? Math.max(...sortedFeatures.map(([, d]) => Math.abs(d.impact)), 1) : 1;
-
-          return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedStudent(null)}
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            />
-            
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-10 flex flex-col"
-            >
-              {/* Header */}
-              <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-indigo-50/50 dark:from-slate-800/80 dark:to-indigo-900/20 flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-lg">
-                    {(s.user_name || 'U')[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{s.user_name || 'Unknown Student'}</h3>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                      Submitted on {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setSelectedStudent(null)}
-                  className="p-2.5 bg-white dark:bg-slate-700 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-600 transition-colors hover:bg-slate-50 dark:hover:bg-slate-600"
-                >
-                  <FiX size={20} />
-                </button>
-              </div>
-
-              {/* Scrollable Content */}
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
-                {/* Top Row: Score Gauge + Risk + Actual Score */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Score Gauge */}
-                  <div className="flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white dark:from-slate-700/50 dark:to-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-                    <div className="relative w-32 h-32">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                        <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-200 dark:text-slate-700" />
-                        <motion.circle
-                          cx="60" cy="60" r="54" fill="none" stroke={ringColor} strokeWidth="8"
-                          strokeLinecap="round"
-                          strokeDasharray={circumference}
-                          initial={{ strokeDashoffset: circumference }}
-                          animate={{ strokeDashoffset: offset }}
-                          transition={{ duration: 1, ease: 'easeOut' }}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-black text-slate-800 dark:text-white">{score.toFixed(0)}</span>
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500">/ 100</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-sm font-bold text-slate-600 dark:text-slate-300">Predicted Score</p>
-                  </div>
-
-                  {/* Risk Level Card */}
-                  <div className="flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white dark:from-slate-700/50 dark:to-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${risk === 'low' ? 'bg-emerald-100 dark:bg-emerald-900/30' : risk === 'medium' ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}>
-                      {risk === 'low' ? <FiCheckCircle className="text-emerald-600 dark:text-emerald-400" size={32} /> : <FiAlertTriangle className={risk === 'medium' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'} size={32} />}
-                    </div>
-                    <p className={`mt-3 text-2xl font-black uppercase ${riskColors[risk]}`}>{risk}</p>
-                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-1">Risk Level</p>
-                  </div>
-
-                  {/* Actual Score / Accuracy */}
-                  <div className="flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white dark:from-slate-700/50 dark:to-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-                    {s.actual_score ? (
-                      <>
-                        <p className="text-3xl font-black text-slate-800 dark:text-white">{s.actual_score}</p>
-                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300 mt-1">Actual Score</p>
-                        <div className={`mt-2 px-3 py-1 rounded-full text-xs font-bold ${Math.abs(score - s.actual_score) <= 5 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                          Error: ±{Math.abs(score - s.actual_score).toFixed(1)} pts
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                          <FiEdit3 className="text-slate-400 dark:text-slate-500" size={24} />
-                        </div>
-                        <p className="text-sm font-bold text-slate-400 dark:text-slate-500 mt-3">No Actual Score</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Enter from the table</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Student Input Values Grid */}
-                {hasExplanations && (
-                  <div>
-                    <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
-                      📊 Submitted Lifestyle Data
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {Object.entries(explanations).map(([key, data]) => {
-                        const cfg = featureConfig[key] || { label: key, unit: '', icon: '📊' };
-                        const displayValue = key === 'part_time_job' ? (data.value ? 'Yes' : 'No') : data.value;
-                        return (
-                          <div key={key} className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 border border-slate-100 dark:border-slate-600/50 hover:border-indigo-200 dark:hover:border-indigo-700 transition-colors">
-                            <p className="text-lg mb-0.5">{cfg.icon}</p>
-                            <p className="text-lg font-black text-slate-800 dark:text-white">{displayValue}<span className="text-xs font-medium text-slate-400 dark:text-slate-500 ml-1">{cfg.unit}</span></p>
-                            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 truncate">{cfg.label}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* SHAP Factor Analysis */}
-                <div>
-                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
-                    🧬 AI Factor Impact Analysis
-                  </h4>
-                  {hasExplanations ? (
-                    <div className="space-y-3">
-                      {sortedFeatures.map(([featureName, expl], i) => {
-                        const cfg = featureConfig[featureName] || { label: featureName, icon: '📊' };
-                        const barWidth = (Math.abs(expl.impact) / maxAbsImpact) * 100;
-                        const isPositive = expl.impact > 0;
-                        return (
-                          <div key={i} className="bg-slate-50 dark:bg-slate-700/30 rounded-xl p-3 border border-slate-100 dark:border-slate-700/50">
-                            <div className="flex justify-between items-center mb-1.5">
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                                <span>{cfg.icon}</span> {cfg.label}
-                              </span>
-                              <span className={`text-sm font-extrabold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                {isPositive ? '+' : ''}{expl.impact} pts
-                              </span>
-                            </div>
-                            <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden flex">
-                              {!isPositive && (
-                                <motion.div 
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${barWidth}%` }}
-                                  transition={{ duration: 0.6, delay: i * 0.03 }}
-                                  className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full ml-auto"
-                                />
-                              )}
-                              {isPositive && (
-                                <motion.div 
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${barWidth}%` }}
-                                  transition={{ duration: 0.6, delay: i * 0.03 }}
-                                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
-                                />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700 border-dashed">
-                      No detailed factor breakdown available for this prediction.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-          );
-        })()}
-      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
