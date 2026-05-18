@@ -13,21 +13,22 @@ import time
 # Get the directory where this file lives
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load models lazily to prevent Render startup timeouts (Free Tier has strict limits)
+# Models will be loaded LAZILY on first use to prevent blocking server startup
 score_regressor = None
 risk_classifier = None
 feature_columns = None
 
 def _get_models():
-    """Lazily load models only when needed for the first time."""
+    """Lazily load the ML models only when a prediction is actually requested."""
     global score_regressor, risk_classifier, feature_columns
     if score_regressor is None:
         print("🔄 Loading ML models lazily...")
-        start_time = time.time()
+        start = time.time()
         score_regressor = joblib.load(os.path.join(BASE_DIR, 'score_regressor.pkl'))
         risk_classifier = joblib.load(os.path.join(BASE_DIR, 'risk_classifier.pkl'))
         feature_columns = joblib.load(os.path.join(BASE_DIR, 'feature_columns.pkl'))
-        print(f"✅ ML models loaded successfully in {time.time() - start_time:.1f}s!")
+        elapsed = time.time() - start
+        print(f"✅ ML models loaded successfully in {elapsed:.1f}s!")
     return score_regressor, risk_classifier, feature_columns
 
 # SHAP is loaded LAZILY — not on startup to prevent Render timeout
@@ -49,8 +50,8 @@ def _get_shap_explainer():
         try:
             print("🔄 Initializing SHAP TreeExplainer (first prediction only)...")
             start = time.time()
-            models = _get_models()
-            shap_explainer = shap.TreeExplainer(models[0]) # models[0] is score_regressor
+            score_reg, _, _ = _get_models()
+            shap_explainer = shap.TreeExplainer(score_reg)
             elapsed = time.time() - start
             print(f"✅ SHAP explainer ready in {elapsed:.1f}s")
         except Exception as e:
@@ -64,10 +65,7 @@ def _get_feature_importance_fallback(features):
     Uses the Random Forest's built-in feature_importances_ 
     combined with the actual feature values to approximate impact.
     """
-    models = _get_models()
-    score_reg = models[0]
-    feat_cols = models[2]
-    
+    score_reg, _, feat_cols = _get_models()
     importances = score_reg.feature_importances_
     explanations = {}
     for i, col in enumerate(feat_cols):
@@ -127,10 +125,8 @@ def predict_student(record):
         record.upcoming_deadlines,
     ]])
 
-    # Get models lazily
-    score_reg, risk_class, feat_cols = _get_models()
-
     # Run predictions
+    score_reg, risk_class, feat_cols = _get_models()
     predicted_score = float(score_reg.predict(features)[0])
     predicted_score = max(0, min(100, predicted_score))  # Clamp to 0-100
 
