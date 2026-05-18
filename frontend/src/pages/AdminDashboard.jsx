@@ -306,6 +306,11 @@ const AdminDashboard = () => {
                           {pred.user_name || 'Unknown'}
                           <FiExternalLink size={12} className="opacity-50" />
                         </button>
+                        {pred.user_email && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            {pred.user_email}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {new Date(pred.created_at).toLocaleDateString()}

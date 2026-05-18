@@ -323,9 +323,17 @@ class AdminCSVUploadView(APIView):
 
         for row_num, row in enumerate(reader, start=2):
             try:
-                # Create a student record for the admin user
+                # Handle user association - NO account creation for batch uploads
+                raw_name = row.get('name') or row.get('username') or f"Student_{row_num}"
+                email = row.get('email') or ""
+                phone = row.get('phone') or ""
+
+                # Create a student record for the admin user, but store guest info
                 record = StudentRecord.objects.create(
                     user=request.user,
+                    guest_name=raw_name,
+                    guest_email=email,
+                    guest_phone=phone,
                     study_hours=float(row.get('study_hours', 0)),
                     self_study_hours=float(row.get('self_study_hours', 0)),
                     online_class_hours=float(row.get('online_class_hours', 0)),

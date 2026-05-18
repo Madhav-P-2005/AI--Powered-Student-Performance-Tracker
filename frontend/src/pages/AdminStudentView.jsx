@@ -74,7 +74,12 @@ const AdminStudentView = () => {
                 <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
                   {prediction.user_name || 'Unknown Student'}
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+                <p className="text-slate-600 dark:text-slate-300 text-sm font-semibold mt-1 mb-1">
+                  {prediction.user_email && <a href={`mailto:${prediction.user_email}`} className="mr-4 hover:text-indigo-500 transition-colors">📧 {prediction.user_email}</a>}
+                  {prediction.user_phone && <a href={`tel:${prediction.user_phone}`} className="hover:text-indigo-500 transition-colors">📱 {prediction.user_phone}</a>}
+                  {!prediction.user_email && !prediction.user_phone && <span className="italic text-slate-400">No contact info</span>}
+                </p>
+                <p className="text-slate-500 dark:text-slate-500 text-xs font-medium">
                   Prediction #{prediction.id} · {new Date(prediction.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               </div>

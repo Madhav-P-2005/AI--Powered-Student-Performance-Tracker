@@ -22,6 +22,11 @@ class StudentRecord(models.Model):
         related_name='student_records',  # Access via: user.student_records.all()
     )
 
+    # For batch uploads by admin (students who don't have accounts)
+    guest_name = models.CharField(max_length=255, blank=True, null=True)
+    guest_email = models.EmailField(blank=True, null=True)
+    guest_phone = models.CharField(max_length=20, blank=True, null=True)
+
     # --- Study Habits ---
     study_hours = models.FloatField(help_text="Daily study hours (0-24)")
     self_study_hours = models.FloatField(help_text="Weekly self-study hours (0-40)")

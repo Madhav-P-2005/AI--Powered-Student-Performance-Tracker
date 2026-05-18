@@ -9,6 +9,8 @@ class PredictionSerializer(serializers.ModelSerializer):
     accuracy_error = serializers.FloatField(read_only=True)
     user_name = serializers.SerializerMethodField()
     user_id = serializers.SerializerMethodField()
+    user_email = serializers.SerializerMethodField()
+    user_phone = serializers.SerializerMethodField()
 
     class Meta:
         model = Prediction
@@ -20,7 +22,7 @@ class PredictionSerializer(serializers.ModelSerializer):
     def get_user_name(self, obj):
         """Return the username of the student who owns this prediction."""
         try:
-            return obj.student_record.user.username
+            return obj.student_record.guest_name or obj.student_record.user.username
         except AttributeError:
             return 'Unknown'
 
@@ -28,6 +30,20 @@ class PredictionSerializer(serializers.ModelSerializer):
         """Return the user ID of the student who owns this prediction."""
         try:
             return obj.student_record.user.id
+        except AttributeError:
+            return None
+
+    def get_user_email(self, obj):
+        """Return the user email of the student."""
+        try:
+            return obj.student_record.guest_email or obj.student_record.user.email
+        except AttributeError:
+            return None
+
+    def get_user_phone(self, obj):
+        """Return the user phone of the student."""
+        try:
+            return obj.student_record.guest_phone or obj.student_record.user.phone
         except AttributeError:
             return None
 
