@@ -13,12 +13,22 @@ import time
 # Get the directory where this file lives
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load models once when the module is imported (efficient!)
-print("🔄 Loading ML models...")
-score_regressor = joblib.load(os.path.join(BASE_DIR, 'score_regressor.pkl'))
-risk_classifier = joblib.load(os.path.join(BASE_DIR, 'risk_classifier.pkl'))
-feature_columns = joblib.load(os.path.join(BASE_DIR, 'feature_columns.pkl'))
-print("✅ ML models loaded successfully!")
+# Load models lazily to prevent Render startup timeouts (Free Tier has strict limits)
+score_regressor = None
+risk_classifier = None
+feature_columns = None
+
+def _get_models():
+    """Lazily load models only when needed for the first time."""
+    global score_regressor, risk_classifier, feature_columns
+    if score_regressor is None:
+        print("🔄 Loading ML models lazily...")
+        start_time = time.time()
+        score_regressor = joblib.load(os.path.join(BASE_DIR, 'score_regressor.pkl'))
+        risk_classifier = joblib.load(os.path.join(BASE_DIR, 'risk_classifier.pkl'))
+        feature_columns = joblib.load(os.path.join(BASE_DIR, 'feature_columns.pkl'))
+        print(f"✅ ML models loaded successfully in {time.time() - start_time:.1f}s!")
+    return score_regressor, risk_classifier, feature_columns
 
 # SHAP is loaded LAZILY — not on startup to prevent Render timeout
 SHAP_AVAILABLE = False
@@ -39,7 +49,8 @@ def _get_shap_explainer():
         try:
             print("🔄 Initializing SHAP TreeExplainer (first prediction only)...")
             start = time.time()
-            shap_explainer = shap.TreeExplainer(score_regressor)
+            models = _get_models()
+            shap_explainer = shap.TreeExplainer(models[0]) # models[0] is score_regressor
             elapsed = time.time() - start
             print(f"✅ SHAP explainer ready in {elapsed:.1f}s")
         except Exception as e:
@@ -53,9 +64,13 @@ def _get_feature_importance_fallback(features):
     Uses the Random Forest's built-in feature_importances_ 
     combined with the actual feature values to approximate impact.
     """
-    importances = score_regressor.feature_importances_
+    models = _get_models()
+    score_reg = models[0]
+    feat_cols = models[2]
+    
+    importances = score_reg.feature_importances_
     explanations = {}
-    for i, col in enumerate(feature_columns):
+    for i, col in enumerate(feat_cols):
         # Approximate impact: importance * normalized deviation from mean
         raw_importance = float(importances[i])
         value = float(features[0][i])
@@ -112,11 +127,14 @@ def predict_student(record):
         record.upcoming_deadlines,
     ]])
 
+    # Get models lazily
+    score_reg, risk_class, feat_cols = _get_models()
+
     # Run predictions
-    predicted_score = float(score_regressor.predict(features)[0])
+    predicted_score = float(score_reg.predict(features)[0])
     predicted_score = max(0, min(100, predicted_score))  # Clamp to 0-100
 
-    risk_level = risk_classifier.predict(features)[0]  # 'low', 'medium', or 'high'
+    risk_level = risk_class.predict(features)[0]  # 'low', 'medium', or 'high'
 
     # Build result
     result = {
@@ -136,7 +154,7 @@ def predict_student(record):
 
             # Build a dict of feature → impact on score
             explanations = {}
-            for i, col in enumerate(feature_columns):
+            for i, col in enumerate(feat_cols):
                 impact = round(float(shap_values[0][i]), 2)
                 explanations[col] = {
                     'value': float(features[0][i]),
