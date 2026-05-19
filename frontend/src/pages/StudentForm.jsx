@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { containerVariants, itemVariants } from '../config/constants';
 
 const StudentForm = () => {
-  const { register, handleSubmit, control, formState: { errors }, watch } = useForm({
+  const { register, handleSubmit, control, formState: { errors }, watch, setValue } = useForm({
     defaultValues: {
       study_hours: 15,
       self_study_hours: 10,
@@ -52,59 +52,109 @@ const StudentForm = () => {
   };
 
   // ============================================================
-  // Enhanced InputField with range guide & description
+  // Innovative StepperField with smart active guide
   // ============================================================
-  const InputField = ({ label, name, type = "number", min, max, step = "any", description, guide, icon }) => {
+  const InputField = ({ label, name, type = "number", min, max, step = 1, description, guide, icon }) => {
     const currentValue = watch(name);
     // Find which guide range the current value falls into
     const activeGuide = guide?.find(g => currentValue >= g.min && currentValue <= g.max);
+    
+    // Determine the color theme for the active guide
+    const themeColor = activeGuide?.color === 'green' ? 'emerald' :
+                       activeGuide?.color === 'yellow' ? 'amber' :
+                       activeGuide?.color === 'red' ? 'red' : 'indigo';
+
+    const handleDecrement = (e) => {
+      e.preventDefault();
+      const val = Number(currentValue) || 0;
+      if (min === undefined || val - step >= min) {
+        setValue(name, Number((val - step).toFixed(2)), { shouldValidate: true, shouldDirty: true });
+      } else if (val > min) {
+        setValue(name, min, { shouldValidate: true, shouldDirty: true });
+      }
+    };
+
+    const handleIncrement = (e) => {
+      e.preventDefault();
+      const val = Number(currentValue) || 0;
+      if (max === undefined || val + step <= max) {
+        setValue(name, Number((val + step).toFixed(2)), { shouldValidate: true, shouldDirty: true });
+      } else if (val < max) {
+        setValue(name, max, { shouldValidate: true, shouldDirty: true });
+      }
+    };
 
     return (
-      <motion.div whileHover={{ scale: 1.01 }} className="relative group">
-        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
-          {icon && <span className="text-base">{icon}</span>}
-          {label}
-        </label>
-        {description && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 leading-relaxed">{description}</p>
-        )}
-        <input
-          type={type}
-          step={step}
-          {...register(name, { 
-            required: 'Required',
-            min: { value: min, message: `Minimum is ${min}` },
-            max: { value: max, message: `Maximum is ${max}` }
-          })}
-          className={`w-full px-4 py-3 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm ${errors[name] ? 'border-red-400 bg-red-50/50 dark:bg-red-900/30' : 'border-white/40 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`}
-          placeholder={min !== undefined ? `${min} – ${max}` : ''}
-        />
-        {/* Live range indicator */}
-        {activeGuide && (
-          <div className={`mt-1.5 flex items-center gap-1.5 text-xs font-semibold ${
-            activeGuide.color === 'green' ? 'text-emerald-600 dark:text-emerald-400' :
-            activeGuide.color === 'yellow' ? 'text-amber-600 dark:text-amber-400' :
-            activeGuide.color === 'red' ? 'text-red-500 dark:text-red-400' :
-            'text-blue-500 dark:text-blue-400'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${
-              activeGuide.color === 'green' ? 'bg-emerald-500' :
-              activeGuide.color === 'yellow' ? 'bg-amber-500' :
-              activeGuide.color === 'red' ? 'bg-red-500' :
-              'bg-blue-500'
-            }`}></span>
-            {activeGuide.label}
+      <motion.div whileHover={{ scale: 1.01 }} className="relative group flex flex-col h-full justify-between">
+        <div>
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
+            {icon && <span className="text-base">{icon}</span>}
+            {label}
+          </label>
+          {description && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 mb-3 leading-relaxed">{description}</p>
+          )}
+        </div>
+        
+        <div>
+          {/* Custom Stepper Input */}
+          <div className={`flex items-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-all shadow-sm group-hover:shadow focus-within:ring-2 focus-within:ring-${themeColor}-500/30 focus-within:border-${themeColor}-400 ${errors[name] ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'}`}>
+            <button 
+              type="button"
+              onClick={handleDecrement}
+              className={`px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 hover:text-${themeColor}-600 dark:text-slate-400 dark:hover:text-${themeColor}-400 font-black text-lg transition-colors border-r border-slate-200 dark:border-slate-600 flex-shrink-0 active:bg-slate-200 dark:active:bg-slate-500 select-none`}
+            >
+              −
+            </button>
+            <input
+              type={type}
+              step={step}
+              {...register(name, { 
+                required: 'Required',
+                min: { value: min, message: `Minimum is ${min}` },
+                max: { value: max, message: `Maximum is ${max}` },
+                valueAsNumber: type === 'number'
+              })}
+              className="flex-1 w-full text-center py-3 bg-transparent outline-none font-black text-slate-800 dark:text-white text-lg"
+              placeholder={min !== undefined ? `${min} – ${max}` : ''}
+            />
+            <button 
+              type="button"
+              onClick={handleIncrement}
+              className={`px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-500 hover:text-${themeColor}-600 dark:text-slate-400 dark:hover:text-${themeColor}-400 font-black text-lg transition-colors border-l border-slate-200 dark:border-slate-600 flex-shrink-0 active:bg-slate-200 dark:active:bg-slate-500 select-none`}
+            >
+              +
+            </button>
           </div>
-        )}
-        {/* Static range guide (always visible) */}
-        {guide && !activeGuide && (
-          <div className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-            {guide.map((g, i) => (
-              <span key={i}>{i > 0 && ' · '}<strong>{g.min}-{g.max}</strong>: {g.label}</span>
-            ))}
+
+          {/* Context Bar (Visual Indicator) */}
+          {min !== undefined && max !== undefined && (
+            <div className="mt-2 h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden relative">
+              <div 
+                className={`absolute top-0 left-0 h-full bg-${themeColor}-500 transition-all duration-300 ease-out`}
+                style={{ width: `${Math.min(100, Math.max(0, ((currentValue - min) / (max - min)) * 100))}%` }}
+              ></div>
+            </div>
+          )}
+
+          {/* Smart Active Guide (Only shows the relevant message) */}
+          <div className="mt-2 h-12 flex items-start"> 
+            {activeGuide ? (
+              <motion.div 
+                key={activeGuide.label} // forces re-animation on change
+                initial={{ opacity: 0, y: -5 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className={`flex items-start gap-1.5 text-xs font-semibold px-2 py-1.5 rounded-lg bg-${themeColor}-50/50 dark:bg-${themeColor}-900/20 text-${themeColor}-700 dark:text-${themeColor}-400 border border-${themeColor}-200/50 dark:border-${themeColor}-800/50`}
+              >
+                <span className={`w-2 h-2 mt-1 rounded-full shrink-0 bg-${themeColor}-500`}></span>
+                <span>{activeGuide.label}</span>
+              </motion.div>
+            ) : (
+               <div className="text-xs text-slate-400 dark:text-slate-500 italic px-2 py-1.5">Enter a valid value for insights...</div>
+            )}
           </div>
-        )}
-        {errors[name] && <p className="absolute -bottom-5 left-1 mt-1 text-xs font-bold text-red-500 dark:text-red-400">{errors[name].message}</p>}
+          {errors[name] && <p className="absolute -bottom-5 left-1 mt-1 text-xs font-bold text-red-500 dark:text-red-400">{errors[name].message}</p>}
+        </div>
       </motion.div>
     );
   };
