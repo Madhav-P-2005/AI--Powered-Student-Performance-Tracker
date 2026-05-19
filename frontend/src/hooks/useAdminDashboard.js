@@ -70,24 +70,38 @@ const useAdminDashboard = () => {
   };
 
   // Trigger Delete Confirmation Modal
-  const handleDeleteStudent = (predictionId, userId, studentName) => {
-    if (!userId) {
-      toast.error('Cannot delete: Missing user ID. Note: Old predictions may not have a user_id attached.');
-      return;
-    }
-    setDeleteModalConfig({ isOpen: true, userId, studentName });
+  const handleDeleteStudent = (predictionId, userId, studentName, isGuest) => {
+    setDeleteModalConfig({ isOpen: true, predictionId, userId, studentName, isGuest });
   };
 
-  // Actual Delete API Call
-  const confirmDeleteStudent = async () => {
-    const { userId, studentName } = deleteModalConfig;
+  // Delete ONLY the records (keep account)
+  const confirmDeleteRecordsOnly = async () => {
+    const { predictionId, studentName } = deleteModalConfig;
     try {
-      await authService.deleteUser(userId);
-      toast.success(`Student ${studentName} successfully deleted.`);
-      setDeleteModalConfig({ isOpen: false, userId: null, studentName: '' });
+      await predictionService.deletePrediction(predictionId);
+      toast.success(`Records for ${studentName} successfully deleted.`);
+      setDeleteModalConfig({ isOpen: false, predictionId: null, userId: null, studentName: '', isGuest: false });
       fetchAllPredictions();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to delete student');
+      toast.error('Failed to delete records');
+      console.error('Delete error:', error);
+    }
+  };
+
+  // Delete the ENTIRE account
+  const confirmDeleteAccount = async () => {
+    const { userId, studentName } = deleteModalConfig;
+    if (!userId) {
+      toast.error('Cannot delete account: Missing user ID.');
+      return;
+    }
+    try {
+      await authService.deleteUser(userId);
+      toast.success(`Account for ${studentName} completely deleted.`);
+      setDeleteModalConfig({ isOpen: false, predictionId: null, userId: null, studentName: '', isGuest: false });
+      fetchAllPredictions();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete account');
       console.error('Delete error:', error);
     }
   };

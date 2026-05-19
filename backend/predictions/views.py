@@ -79,8 +79,26 @@ class PredictionHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         if self.request.user.is_admin_user:
-            return Prediction.objects.all()
-        return Prediction.objects.filter(student_record__user=self.request.user)
+            return Prediction.objects.all().order_by('-created_at')
+        return Prediction.objects.filter(student_record__user=self.request.user).order_by('-created_at')
+
+
+class DeletePredictionView(APIView):
+    """
+    DELETE /api/v1/predictions/<id>/
+    Allows an admin to delete a specific prediction (and its associated StudentRecord)
+    without deleting the user's entire account.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
+    def delete(self, request, pk):
+        try:
+            prediction = Prediction.objects.get(pk=pk)
+            # Delete the associated student record, which deletes the prediction (CASCADE)
+            prediction.student_record.delete()
+            return Response({"message": "Prediction records successfully deleted."}, status=status.HTTP_204_NO_CONTENT)
+        except Prediction.DoesNotExist:
+            return Response({"error": "Prediction not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 class TrendAnalysisView(APIView):

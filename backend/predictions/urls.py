@@ -9,6 +9,7 @@ from .views import (
     UpdateActualScoreView,
     AccuracyAnalyticsView,
     AdminCSVUploadView,
+    DeletePredictionView,
 )
 
 urlpatterns = [
@@ -32,4 +33,7 @@ urlpatterns = [
 
     # POST: admin CSV upload for batch predictions
     path('csv-upload/', AdminCSVUploadView.as_view(), name='csv-upload'),
+
+    # DELETE: delete a specific prediction/record
+    path('<int:pk>/', DeletePredictionView.as_view(), name='delete-prediction'),
 ]

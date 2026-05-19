@@ -11,6 +11,7 @@ class PredictionSerializer(serializers.ModelSerializer):
     user_id = serializers.SerializerMethodField()
     user_email = serializers.SerializerMethodField()
     user_phone = serializers.SerializerMethodField()
+    is_guest = serializers.SerializerMethodField()
 
     class Meta:
         model = Prediction
@@ -46,6 +47,13 @@ class PredictionSerializer(serializers.ModelSerializer):
             return obj.student_record.guest_phone or obj.student_record.user.phone
         except AttributeError:
             return None
+
+    def get_is_guest(self, obj):
+        """Return True if this prediction belongs to a CSV-uploaded guest student without an account."""
+        try:
+            return bool(obj.student_record.guest_name)
+        except AttributeError:
+            return False
 
 
 class AccuracyUpdateSerializer(serializers.Serializer):

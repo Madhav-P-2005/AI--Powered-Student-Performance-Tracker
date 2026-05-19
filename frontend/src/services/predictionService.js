@@ -24,6 +24,13 @@ export const getAlerts = () => {
 };
 
 /**
+ * Delete a specific prediction record (Admin only).
+ */
+export const deletePrediction = (id) => {
+  return api.delete(`/predictions/${id}/`);
+};
+
+/**
  * Get trend analysis data for the current student.
  */
 export const getTrends = () => {

@@ -299,13 +299,20 @@ const AdminDashboard = () => {
                     <tr key={pred.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
                       <td className="px-6 py-4 text-sm text-gray-400 dark:text-gray-500">{idx + 1}</td>
                       <td className="px-6 py-4">
-                        <button 
-                          onClick={() => navigate(`/admin/student/${pred.id}`)}
-                          className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all text-left inline-flex items-center gap-1.5"
-                        >
-                          {pred.user_name || 'Unknown'}
-                          <FiExternalLink size={12} className="opacity-50" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => navigate(`/admin/student/${pred.id}`)}
+                            className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all text-left inline-flex items-center gap-1.5"
+                          >
+                            {pred.user_name || 'Unknown'}
+                            <FiExternalLink size={12} className="opacity-50" />
+                          </button>
+                          {pred.is_guest && (
+                            <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border border-slate-200 dark:border-slate-600">
+                              CSV
+                            </span>
+                          )}
+                        </div>
                         {pred.user_email && (
                           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                             {pred.user_email}
@@ -362,9 +369,9 @@ const AdminDashboard = () => {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
-                          onClick={() => handleDeleteStudent(pred.id, pred.user_id, pred.user_name || 'Unknown')}
+                          onClick={() => handleDeleteStudent(pred.id, pred.user_id, pred.user_name || 'Unknown', pred.is_guest)}
                           className="text-slate-400 hover:text-red-600 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-xl transition-colors border border-transparent hover:border-red-100 dark:hover:border-red-800/50 shadow-sm"
-                          title="Delete Student completely"
+                          title="Delete Student"
                         >
                           <FiTrash2 size={18} />
                         </button>
@@ -395,15 +402,54 @@ const AdminDashboard = () => {
 
 
 
-      {/* Delete Confirmation Modal */}
-      <ConfirmModal
-        isOpen={deleteModalConfig.isOpen}
-        onClose={() => setDeleteModalConfig({ ...deleteModalConfig, isOpen: false })}
-        onConfirm={confirmDeleteStudent}
-        title="Are you sure?"
-        message={<>You are about to delete <span className="font-bold text-slate-800 dark:text-slate-200">{deleteModalConfig.studentName}</span>'s account. This will permanently remove all their performance data and predictions.</>}
-        confirmLabel="Delete Account"
-      />
+      {/* Custom Delete Options Modal */}
+      <AnimatePresence>
+        {deleteModalConfig.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setDeleteModalConfig({ ...deleteModalConfig, isOpen: false })} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 flex items-center justify-center mx-auto mb-4">
+                <FiTrash2 size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Delete {deleteModalConfig.studentName}?</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Choose how you want to handle this deletion.</p>
+              
+              <div className="space-y-3">
+                {deleteModalConfig.isGuest ? (
+                  <button 
+                    onClick={confirmDeleteRecordsOnly}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md flex flex-col items-center justify-center gap-1"
+                  >
+                    <span>Delete CSV Student</span>
+                    <span className="text-[10px] font-normal opacity-80">Removes this student from the batch</span>
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={confirmDeleteRecordsOnly}
+                      className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-1"
+                    >
+                      <span>Delete Prediction Records Only</span>
+                      <span className="text-[10px] font-normal opacity-80">Allows student to submit form again</span>
+                    </button>
+                    
+                    <button 
+                      onClick={confirmDeleteAccount}
+                      className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md flex flex-col items-center justify-center gap-1"
+                    >
+                      <span>Delete Entire Account</span>
+                      <span className="text-[10px] font-normal opacity-80">Permanently wipes user from database</span>
+                    </button>
+                  </>
+                )}
+              </div>
+              <button onClick={() => setDeleteModalConfig({ ...deleteModalConfig, isOpen: false })} className="mt-4 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+                Cancel
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Create Admin Modal */}
       <AnimatePresence>
