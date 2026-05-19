@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5ndnyo=2$736ak8f^q%f9ovg3s
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 # Locally: allows localhost. On Render: set ALLOWED_HOSTS=your-app.onrender.com
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*').split(',')
 
 
 # =============================================================================
@@ -161,6 +161,7 @@ CORS_ALLOWED_ORIGINS = [
 if _cors_env:
     CORS_ALLOWED_ORIGINS.extend([origin.strip() for origin in _cors_env.split(',') if origin.strip()])
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # =============================================================================
