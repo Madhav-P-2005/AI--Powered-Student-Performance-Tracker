@@ -5,7 +5,7 @@ import * as studentService from '../services/studentService';
 import * as predictionService from '../services/predictionService';
 import { toast } from 'react-toastify';
 import { FiSave, FiAlertCircle, FiArrowLeft, FiBook, FiMonitor, FiHeart, FiInfo } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { containerVariants, itemVariants } from '../config/constants';
 
 const StudentForm = () => {
@@ -52,10 +52,12 @@ const StudentForm = () => {
   };
 
   // ============================================================
-  // Innovative StepperField with smart active guide
+  // Innovative StepperField with smart active guide & expandable criteria
   // ============================================================
   const InputField = ({ label, name, type = "number", min, max, step = 1, description, guide, icon }) => {
     const currentValue = watch(name);
+    const [showCriteria, setShowCriteria] = useState(false);
+    
     // Find which guide range the current value falls into
     const activeGuide = guide?.find(g => currentValue >= g.min && currentValue <= g.max);
     
@@ -87,13 +89,47 @@ const StudentForm = () => {
     return (
       <motion.div whileHover={{ scale: 1.01 }} className="relative group flex flex-col h-full justify-between">
         <div>
-          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
-            {icon && <span className="text-base">{icon}</span>}
-            {label}
-          </label>
+          <div className="flex justify-between items-start mb-1.5">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              {icon && <span className="text-base">{icon}</span>}
+              {label}
+            </label>
+            {guide && (
+              <button 
+                type="button" 
+                onClick={() => setShowCriteria(!showCriteria)}
+                className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-md transition-colors"
+              >
+                <FiInfo size={12} /> {showCriteria ? 'Hide Criteria' : 'View Criteria'}
+              </button>
+            )}
+          </div>
           {description && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mb-3 leading-relaxed">{description}</p>
           )}
+
+          {/* Expandable Full Criteria Guide */}
+          <AnimatePresence>
+            {showCriteria && guide && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-3"
+              >
+                <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-2 text-xs">
+                  {guide.map((g, i) => (
+                    <div key={i} className="flex gap-2">
+                      <span className={`font-bold shrink-0 w-12 text-${g.color === 'green' ? 'emerald' : g.color === 'yellow' ? 'amber' : 'red'}-600 dark:text-${g.color === 'green' ? 'emerald' : g.color === 'yellow' ? 'amber' : 'red'}-400`}>
+                        {g.min}-{g.max}
+                      </span>
+                      <span className="text-slate-600 dark:text-slate-400 leading-tight">{g.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         
         <div>
