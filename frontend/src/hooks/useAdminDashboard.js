@@ -230,7 +230,8 @@ const useAdminDashboard = () => {
 
     // CRUD
     handleDeleteStudent,
-    confirmDeleteStudent,
+    confirmDeleteRecordsOnly,
+    confirmDeleteAccount,
 
     // CSV
     isUploading,

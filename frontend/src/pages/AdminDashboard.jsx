@@ -34,7 +34,7 @@ const AdminDashboard = () => {
     editingId, setEditingId,
     actualScoreInput, setActualScoreInput,
     handleSaveActualScore,
-    handleDeleteStudent, confirmDeleteStudent,
+    handleDeleteStudent, confirmDeleteRecordsOnly, confirmDeleteAccount,
     isUploading, fileInputRef, handleFileUpload, exportTableToCSV,
     stats,
     showCreateAdmin, setShowCreateAdmin,
