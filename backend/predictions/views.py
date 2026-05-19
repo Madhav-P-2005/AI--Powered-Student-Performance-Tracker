@@ -89,7 +89,7 @@ class DeletePredictionView(APIView):
     Allows an admin to delete a specific prediction (and its associated StudentRecord)
     without deleting the user's entire account.
     """
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
 
     def delete(self, request, pk):
         try:
