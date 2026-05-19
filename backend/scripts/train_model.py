@@ -162,14 +162,15 @@ print(f"  Training samples: {len(X_train)}")
 print(f"  Testing samples:  {len(X_test)}")
 
 
-# ============================================================
+# =============================================================================
 # STEP 6: Train RandomForestRegressor (predicts exam score)
-# ============================================================
+# =============================================================================
 print("\n🌲 Training Score Regressor...")
 
 regressor = RandomForestRegressor(
-    n_estimators=100,       # 100 decision trees
-    max_depth=15,           # Limit tree depth to prevent overfitting
+    n_estimators=50,       # Reduced from 100 to 50 for memory optimization
+    max_depth=8,           # Limit depth to keep model size tiny
+    min_samples_leaf=5,    # Minimum samples in leaf nodes to prune memory footprint
     random_state=42,
     n_jobs=-1,              # Use all CPU cores for speed
 )
@@ -184,14 +185,15 @@ print(f"  ✅ MAE (Mean Absolute Error): {mae:.2f}")
 print(f"  ✅ R² Score: {r2:.4f}")
 
 
-# ============================================================
+# =============================================================================
 # STEP 7: Train RandomForestClassifier (predicts risk level)
-# ============================================================
+# =============================================================================
 print("\n🌲 Training Risk Classifier...")
 
 classifier = RandomForestClassifier(
-    n_estimators=100,
-    max_depth=15,
+    n_estimators=50,       # Reduced from 100 to 50
+    max_depth=8,           # Limit depth to keep model size tiny
+    min_samples_leaf=5,    # Minimum samples in leaf nodes to prune memory footprint
     random_state=42,
     n_jobs=-1,
 )
@@ -216,18 +218,18 @@ for feature, importance in sorted(zip(FEATURE_COLUMNS, importances), key=lambda 
     print(f"  {feature:25s} {importance:.4f} {bar}")
 
 
-# ============================================================
+# =============================================================================
 # STEP 9: Save models as .pkl files
-# ============================================================
+# =============================================================================
 print("\n💾 Saving models...")
 
 os.makedirs('ml_models', exist_ok=True)
 
-joblib.dump(regressor, 'ml_models/score_regressor.pkl')
-joblib.dump(classifier, 'ml_models/risk_classifier.pkl')
+joblib.dump(regressor, 'ml_models/score_regressor.pkl', compress=3)
+joblib.dump(classifier, 'ml_models/risk_classifier.pkl', compress=3)
 
 # Also save the feature column names (needed when loading the model)
-joblib.dump(FEATURE_COLUMNS, 'ml_models/feature_columns.pkl')
+joblib.dump(FEATURE_COLUMNS, 'ml_models/feature_columns.pkl', compress=3)
 
 print("  ✅ ml_models/score_regressor.pkl  — Predicts exam score")
 print("  ✅ ml_models/risk_classifier.pkl  — Predicts risk level")
