@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiUser, FiMail, FiLock, FiPhone, FiArrowLeft, FiCheckCircle, FiArrowRight, FiCheck, FiX as FiXIcon } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiPhone, FiArrowLeft, FiCheckCircle, FiArrowRight, FiCheck, FiX as FiXIcon, FiEye, FiEyeOff } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { sendRegistrationOTP } from '../services/authService';
@@ -42,6 +42,8 @@ const Register = () => {
   const [storedData, setStoredData] = useState(null);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const inputRefs = useRef([]);
 
   const { register, isAuthenticated } = useAuth();
@@ -217,7 +219,14 @@ const Register = () => {
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Password</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><FiLock className="text-indigo-400" /></div>
-                      <input type="password" className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.password ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="••••••••" {...registerForm('password', { required: 'Password is required', minLength: { value: 8, message: 'Must be at least 8 characters' }, validate: { hasUppercase: v => /[A-Z]/.test(v) || 'Must contain an uppercase letter', hasLowercase: v => /[a-z]/.test(v) || 'Must contain a lowercase letter', hasNumber: v => /[0-9]/.test(v) || 'Must contain a number', hasSpecial: v => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(v) || 'Must contain a special character' } })} />
+                      <input type={showPassword ? 'text' : 'password'} className={`w-full pl-11 pr-12 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.password ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="••••••••" {...registerForm('password', { required: 'Password is required', minLength: { value: 8, message: 'Must be at least 8 characters' }, validate: { hasUppercase: v => /[A-Z]/.test(v) || 'Must contain an uppercase letter', hasLowercase: v => /[a-z]/.test(v) || 'Must contain a lowercase letter', hasNumber: v => /[0-9]/.test(v) || 'Must contain a number', hasSpecial: v => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(v) || 'Must contain a special character' } })} />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                      </button>
                     </div>
                     {/* Password Strength Meter */}
                     {password && (
@@ -246,7 +255,14 @@ const Register = () => {
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Confirm Password</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><FiLock className="text-indigo-400" /></div>
-                      <input type="password" className={`w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.confirmPassword ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="••••••••" {...registerForm('confirmPassword', { validate: value => value === password || "Passwords do not match" })} />
+                      <input type={showConfirmPassword ? 'text' : 'password'} className={`w-full pl-11 pr-12 py-3 bg-white dark:bg-slate-800 border rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 ${errors.confirmPassword ? 'border-red-400 bg-red-50/50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500'}`} placeholder="••••••••" {...registerForm('confirmPassword', { validate: value => value === password || "Passwords do not match" })} />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                      </button>
                     </div>
                     {errors.confirmPassword && <p className="mt-1.5 text-xs font-bold text-red-500 dark:text-red-400">{errors.confirmPassword.message}</p>}
                   </div>
